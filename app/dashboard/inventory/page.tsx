@@ -112,7 +112,7 @@ export default function InventoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Items</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="available">Available</SelectItem>
             <SelectItem value="low_stock">Low Stock</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>

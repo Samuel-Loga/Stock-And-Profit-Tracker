@@ -18,6 +18,7 @@ export interface Database {
           image_url: string | null;
           purchase_price: number;
           selling_price: number;
+          price_updated_at: string | null;
           initial_quantity: number;
           quantity_remaining: number;
           quantity_sold: number;
@@ -25,7 +26,7 @@ export interface Database {
           total_cost: number;
           expected_profit: number;
           actual_profit: number;
-          status: 'active' | 'completed' | 'low_stock';
+          status: 'available' | 'completed' | 'low_stock';
           created_at: string;
           updated_at: string;
         };

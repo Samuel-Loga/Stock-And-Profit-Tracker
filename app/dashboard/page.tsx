@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
 import { Database } from '@/types/database';
+import { StockHistory } from '@/components/dashboard/stock-history';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
@@ -165,6 +166,7 @@ export default function DashboardPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="history">Sales History</TabsTrigger>
+          <TabsTrigger value="stock-history">Stock History</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
@@ -183,6 +185,10 @@ export default function DashboardPage() {
         
         <TabsContent value="history">
           <SalesHistory sales={sales} />
+        </TabsContent>
+
+        <TabsContent value="stock-history">
+          <StockHistory inventory={inventory} restocks={restocks} />
         </TabsContent>
       </Tabs>
     </div>

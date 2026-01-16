@@ -45,10 +45,10 @@ export function RecentActivities({ sales, inventory, restocks }: RecentActivitie
     ...restocks.map(r => ({
       type: 'restock',
       id: r.id,
-      title: `Restocked ${r.inventory?.item_name || 'Item'}`,
-      subtitle: `+${r.quantity_added} units`,
+      title: `Restocked ${r.inventory?.item_name}`,
+      subtitle: `Added ${r.quantity_added} units`,
       amount: r.quantity_added * r.cost_per_unit,
-      date: new Date(r.date_added),
+      date: new Date(r.date_added), // Includes full time for logging
       icon: RefreshCcw,
       color: 'text-orange-600',
       bg: 'bg-orange-100',
