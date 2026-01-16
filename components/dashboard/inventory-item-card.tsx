@@ -50,23 +50,26 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
     <>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-6">
-          <div className="flex gap-4">
-            {item.image_url ? (
-              <img
-                src={item.image_url}
-                alt={item.item_name}
-                className="h-24 w-24 rounded-lg object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="h-24 w-24 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <Package className="h-10 w-10 text-slate-400" />
-              </div>
-            )}
+          <div className="flex gap-6">
+            <div className="relative h-28 w-28 flex-shrink-0">
+              {item.image_url ? (
+                <img src={item.image_url} alt={item.item_name} className="h-full w-full rounded-xl object-cover border shadow-sm" />
+              ) : (
+                <div className="h-full w-full rounded-xl bg-slate-100 flex items-center justify-center border border-dashed">
+                  <Package className="h-10 w-10 text-slate-300" />
+                </div>
+              )}
+            </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-lg truncate">{item.item_name}</h3>
-                <Badge className={getStatusColor(item.status)}>
+              <div className="flex items-start justify-between gap-4 mb-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-xl truncate tracking-tight">{item.item_name}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
+                    {item.description || "No description provided for this item."}
+                  </p>
+                </div>
+                <Badge className={`${getStatusColor(item.status)} h-6`}>
                   {item.status.replace('_', ' ')}
                 </Badge>
               </div>
@@ -94,7 +97,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                   <p className="text-xs text-muted-foreground mb-1">Selling Price</p>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">
-                      ${Number(item.selling_price).toFixed(2)}
+                      K{Number(item.selling_price).toLocaleString()}
                     </span>
                     {isPriceRecentlyUpdated(item.price_updated_at) && (
                       <Badge className="bg-blue-100 text-blue-800 border-transparent px-2 py-0 h-5 text-[10px] font-bold uppercase shrink-0">
@@ -107,7 +110,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Supplier Cost</p>
                   <p className="font-medium text-sm text-muted-foreground">
-                    ${Number(item.purchase_price).toFixed(2)}
+                    K{Number(item.purchase_price).toLocaleString()}
                   </p>
                 </div>
               </div>

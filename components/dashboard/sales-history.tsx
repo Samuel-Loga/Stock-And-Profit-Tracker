@@ -54,10 +54,10 @@ export function SalesHistory({ sales }: SalesHistoryProps) {
                         {sale.inventory?.item_name || 'Unknown Item'}
                       </TableCell>
                       <TableCell>{sale.quantity_sold}</TableCell>
-                      <TableCell>${total.toFixed(2)}</TableCell>
+                      <TableCell>K{total.toLocaleString()}</TableCell>
                       <TableCell>
                         <Badge variant={profit >= 0 ? "default" : "destructive"} className={profit >= 0 ? "bg-green-600" : ""}>
-                          ${profit.toFixed(2)}
+                          K{profit.toLocaleString()}
                         </Badge>
                       </TableCell>
                     </TableRow>

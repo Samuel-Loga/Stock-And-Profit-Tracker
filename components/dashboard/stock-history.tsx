@@ -1,93 +1,65 @@
 // components/dashboard/stock-history.tsx
 'use client';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Database } from '@/types/database';
-
-type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface StockHistoryProps {
-  inventory: InventoryItem[];
+  inventory: any[];
   restocks: any[];
 }
 
 export function StockHistory({ inventory, restocks }: StockHistoryProps) {
-  // Combine initial stocking (from inventory table) and restocking (from restocks table)
-  const allStockingEvents = [
-    ...inventory.map(item => ({
-      id: `initial-${item.id}`,
-      item_name: item.item_name,
-      type: 'Initial Stock',
-      quantity: item.initial_quantity,
-      cost: item.purchase_price,
-      date: new Date(item.created_at || item.date_added),
-      badgeStyle: 'bg-emerald-100 text-emerald-800'
+  // We want to show the batch reference if available
+  const allEvents = [
+    ...inventory.map(i => ({
+      id: i.id,
+      date: new Date(i.created_at),
+      item: i.item_name,
+      qty: i.initial_quantity,
+      cost: i.purchase_price,
+      batch: i.batches?.batch_name || 'Individual Entry', // Join required in fetch
+      type: 'Initial'
     })),
-    ...restocks.map(restock => ({
-      id: `restock-${restock.id}`,
-      item_name: restock.inventory?.item_name || 'Unknown Item',
-      type: 'Restock',
-      quantity: restock.quantity_added,
-      cost: restock.cost_per_unit,
-      date: new Date(restock.date_added),
-      badgeStyle: 'bg-blue-100 text-blue-800'
+    ...restocks.map(r => ({
+      id: r.id,
+      date: new Date(r.date_added),
+      item: r.inventory?.item_name,
+      qty: r.quantity_added,
+      cost: r.cost_per_unit,
+      batch: r.batches?.batch_name || 'Restock Entry',
+      type: 'Restock'
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Stocking & Restocking History</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>Stocking History</CardTitle></CardHeader>
       <CardContent>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Item Name</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Batch Name</TableHead>
+                <TableHead>Item</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Qty Added</TableHead>
-                <TableHead>Supplier Cost</TableHead>
-                <TableHead>Total Investment</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Total Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allStockingEvents.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No stocking records found.
-                  </TableCell>
+              {allEvents.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell className="text-xs">{e.date.toLocaleString()}</TableCell>
+                  <TableCell className="font-medium">{e.batch}</TableCell>
+                  <TableCell>{e.item}</TableCell>
+                  <TableCell><Badge variant="outline">{e.type}</Badge></TableCell>
+                  <TableCell>+{e.qty}</TableCell>
+                  <TableCell>K{(e.qty * e.cost).toLocaleString()}</TableCell>
                 </TableRow>
-              ) : (
-                allStockingEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="whitespace-nowrap text-xs font-medium">
-                      {event.date.toLocaleDateString()} <span className="text-muted-foreground ml-1">{event.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </TableCell>
-                    <TableCell className="font-medium">{event.item_name}</TableCell>
-                    <TableCell>
-                      <Badge className={`${event.badgeStyle} border-transparent text-[10px] uppercase font-bold`}>
-                        {event.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>+{event.quantity}</TableCell>
-                    <TableCell>${Number(event.cost).toFixed(2)}</TableCell>
-                    <TableCell className="font-semibold text-slate-700">
-                      ${(event.quantity * event.cost).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </div>
