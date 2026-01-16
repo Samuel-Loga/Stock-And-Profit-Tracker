@@ -1,9 +1,14 @@
+// app/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { StatsCard } from '@/components/dashboard/stats-card';
+import { SalesAnalytics } from '@/components/dashboard/sales-analytics';
+import { SalesHistory } from '@/components/dashboard/sales-history';
+import { RecentActivities } from '@/components/dashboard/recent-activities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
 import { Database } from '@/types/database';
 
@@ -17,7 +22,9 @@ export default function DashboardPage() {
     actualProfit: 0,
     lowStockItems: 0,
   });
-  const [recentItems, setRecentItems] = useState<InventoryItem[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [restocks, setRestocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,22 +36,47 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: inventory, error } = await supabase
+      // 1. Fetch Inventory
+      const { data: invData, error: invError } = await supabase
         .from('inventory')
         .select('*')
+        .eq('user_id', user.id);
+      if (invError) throw invError;
+
+      // 2. Fetch Sales (with inventory join)
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales')
+        .select('*, inventory(*)')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('sale_date', { ascending: false });
+      if (salesError) throw salesError;
 
-      if (error) throw error;
+      // 3. Fetch Restocks (with inventory join)
+      const { data: restockData, error: restockError } = await supabase
+        .from('restocks')
+        .select('*, inventory(*)')
+        .eq('user_id', user.id)
+        .order('date_added', { ascending: false });
+      // Note: If the table doesn't exist yet, this might error. 
+      // We catch it silently to prevent crashing if user hasn't run migration.
+      if (restockError && restockError.code !== '42P01') throw restockError; 
 
-      if (inventory) {
-        const totalItems = inventory.length;
-        const totalValue = inventory.reduce((sum, item) => sum + Number(item.total_cost), 0);
-        const expectedProfit = inventory
+      if (invData) {
+        const totalItems = invData.length;
+        const totalValue = invData.reduce((sum, item) => sum + Number(item.total_cost), 0);
+        
+        // Calculate Expected Profit (Active items only)
+        const expectedProfit = invData
           .filter(item => item.status === 'active')
           .reduce((sum, item) => sum + Number(item.expected_profit), 0);
-        const actualProfit = inventory.reduce((sum, item) => sum + Number(item.actual_profit), 0);
-        const lowStockItems = inventory.filter(
+        
+        // Calculate Actual Profit based on sales history
+        const actualProfit = salesData?.reduce((sum, sale) => {
+          const buyPrice = sale.inventory?.purchase_price || 0;
+          return sum + ((sale.selling_price - buyPrice) * sale.quantity_sold);
+        }, 0) || 0;
+
+        const lowStockItems = invData.filter(
           item => item.quantity_remaining < item.initial_quantity * 0.2 && item.quantity_remaining > 0
         ).length;
 
@@ -55,9 +87,13 @@ export default function DashboardPage() {
           actualProfit,
           lowStockItems,
         });
-
-        setRecentItems(inventory.slice(0, 5));
+        
+        setInventory(invData);
       }
+
+      setSales(salesData || []);
+      setRestocks(restockData || []);
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -75,13 +111,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Overview of your inventory and performance
-        </p>
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
 
+      {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Items"
@@ -99,7 +133,7 @@ export default function DashboardPage() {
           title="Expected Profit"
           value={`$${stats.expectedProfit.toFixed(2)}`}
           icon={TrendingUp}
-          description="When all items are sold"
+          description="Potential from current stock"
         />
         <StatsCard
           title="Actual Profit"
@@ -109,67 +143,48 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Low Stock Alert */}
       {stats.lowStockItems > 0 && (
         <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-orange-900 text-lg">
               <AlertCircle className="h-5 w-5" />
-              Low Stock Alert
+              Attention Needed
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-orange-800">
-              You have {stats.lowStockItems} item{stats.lowStockItems > 1 ? 's' : ''} running low on stock.
+              You have {stats.lowStockItems} item{stats.lowStockItems > 1 ? 's' : ''} running low on stock. Check your inventory to restock.
             </p>
           </CardContent>
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentItems.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No items yet. Add your first stock item to get started!
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {recentItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.item_name}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center">
-                        <Package className="h-6 w-6 text-slate-400" />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="font-medium">{item.item_name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantity_remaining} / {item.initial_quantity} remaining
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">${Number(item.selling_price).toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">per unit</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="history">Sales History</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            {/* Sales Analytics Chart (Spans 4 columns) */}
+            <SalesAnalytics sales={sales} />
+            
+            {/* Unified Activity Feed (Spans 3 columns) */}
+            <RecentActivities 
+              sales={sales} 
+              inventory={inventory} 
+              restocks={restocks} 
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <SalesHistory sales={sales} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

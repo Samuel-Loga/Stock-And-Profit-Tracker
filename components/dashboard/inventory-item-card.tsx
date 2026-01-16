@@ -1,10 +1,12 @@
+// components/dashboard/inventory-item-card.tsx
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, ShoppingCart, TrendingUp, Calendar } from 'lucide-react';
+import { Package, ShoppingCart, Calendar, PlusCircle } from 'lucide-react';
 import { Database } from '@/types/database';
 import { RecordSaleDialog } from './record-sale-dialog';
+import { RestockDialog } from './restock-dialog';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
@@ -15,6 +17,7 @@ interface InventoryItemCardProps {
 
 export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
   const [showSaleDialog, setShowSaleDialog] = useState(false);
+  const [showRestockDialog, setShowRestockDialog] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -61,7 +64,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Stock</p>
                   <p className="font-medium">
@@ -82,23 +85,8 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 </div>
 
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Sold</p>
-                  <p className="font-medium">{item.quantity_sold} units</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Purchase Price</p>
-                  <p className="font-medium">${Number(item.purchase_price).toFixed(2)}</p>
-                </div>
-
-                <div>
                   <p className="text-xs text-muted-foreground mb-1">Selling Price</p>
                   <p className="font-medium">${Number(item.selling_price).toFixed(2)}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Total Investment</p>
-                  <p className="font-medium">${Number(item.total_cost).toFixed(2)}</p>
                 </div>
 
                 <div>
@@ -109,21 +97,26 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>Added: {new Date(item.date_added).toLocaleDateString()}</span>
-              </div>
-
-              {item.quantity_remaining > 0 && (
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
                 <Button
                   onClick={() => setShowSaleDialog(true)}
-                  className="w-full mt-4"
+                  className="flex-1"
                   size="sm"
+                  disabled={item.quantity_remaining <= 0}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Record Sale
                 </Button>
-              )}
+                <Button
+                  onClick={() => setShowRestockDialog(true)}
+                  variant="outline"
+                  className="flex-1"
+                  size="sm"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Restock
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -133,6 +126,13 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
         item={item}
         open={showSaleDialog}
         onOpenChange={setShowSaleDialog}
+        onSuccess={onUpdate}
+      />
+
+      <RestockDialog
+        item={item}
+        open={showRestockDialog}
+        onOpenChange={setShowRestockDialog}
         onSuccess={onUpdate}
       />
     </>

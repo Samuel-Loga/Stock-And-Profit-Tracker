@@ -1,3 +1,4 @@
+// types/database.ts
 export type Json = any;
 
 export interface Database {
@@ -34,6 +35,24 @@ export interface Database {
       sales: {
         Row: any;
         Insert: any;
+        Update: any;
+      };
+      restocks: {
+        Row: {
+          id: string;
+          inventory_id: string;
+          user_id: string;
+          quantity_added: number;
+          cost_per_unit: number;
+          date_added: string;
+        };
+        Insert: {
+          inventory_id: string;
+          user_id: string;
+          quantity_added: number;
+          cost_per_unit: number;
+          date_added?: string;
+        };
         Update: any;
       };
     };
