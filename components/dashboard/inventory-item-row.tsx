@@ -31,17 +31,27 @@ export function InventoryItemRow({ item, onUpdate }: { item: any, onUpdate: () =
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return (
-      <div className="flex flex-col text-[11px] leading-tight">
+      <div className="flex flex-row gap-2 text-[13px] leading-tight whitespace-nowrap">
         <span className="font-medium text-slate-700">{date.toLocaleDateString()}</span>
         <span className="text-muted-foreground">{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
     );
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'available': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'low_stock': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'completed': return 'bg-slate-100 text-slate-600 border-slate-200';
+      default: return 'bg-slate-50 text-slate-500';
+    }
+  };
+
   return (
     <tr className="hover:bg-slate-50/50 transition-colors border-b last:border-0">
-      <td className="p-4">
-        <div className="flex items-center gap-3">
+      {/* Product Column - Takes up most space */}
+      <td className="p-4 w-1/4">
+        <div className="flex items-center gap-3 min-w-[200px]">
           <div className="h-10 w-10 rounded border overflow-hidden bg-slate-50 flex-shrink-0">
             {item.image_url ? (
               <img src={item.image_url} alt="" className="h-full w-full object-cover" />
@@ -50,35 +60,41 @@ export function InventoryItemRow({ item, onUpdate }: { item: any, onUpdate: () =
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-bold text-slate-900 truncate max-w-[150px]">{item.item_name}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-tight truncate max-w-[150px]">
+            <span className="font-bold text-slate-900 truncate block">{item.item_name}</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-tight truncate block">
               {item.batches?.batch_name || 'Individual'}
             </span>
           </div>
         </div>
       </td>
       
-      <td className="p-4 text-sm font-medium text-slate-600">
+      {/* Financial Columns - Right aligned for professional look */}
+      <td className="p-4 text-center text-sm font-medium text-slate-600 whitespace-nowrap">
         K{Number(item.purchase_price).toLocaleString()}
       </td>
 
-      <td className="p-4 font-bold text-slate-900">
+      <td className="p-4 text-center font-bold text-slate-900 whitespace-nowrap">
         K{Number(item.selling_price).toLocaleString()}
       </td>
 
-      <td className="p-4 text-center">
-        <div className="flex flex-col items-center">
+      <td className="p-4 px-6 text-center">
+        <Badge className={`${getStatusColor(item.status)} uppercase text-[9px] font-bold border px-2 py-0.5 whitespace-nowrap`}>
+          {item.status.replace('_', ' ')}
+        </Badge>
+      </td>
+
+      <td className="p-4 text-center whitespace-nowrap">
+        <div className="flex flex-row gap-1 items-center">
           <span className="font-bold">{item.quantity_remaining}</span>
-          <span className="text-[10px] text-muted-foreground">of {item.initial_quantity}</span>
+          <span className="text-[13px] text-muted-foreground">of {item.initial_quantity}</span>
         </div>
       </td>
 
       <td className="p-4">{formatDate(item.created_at)}</td>
       <td className="p-4">{formatDate(item.updated_at || item.created_at)}</td>
 
-      <td className="p-4">
-        <div className="flex items-center gap-2">
-          {/* PRIMARY ACTION: SALE */}
+      <td className="p-4 text-right">
+        <div className="flex items-center justify-end gap-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -88,7 +104,6 @@ export function InventoryItemRow({ item, onUpdate }: { item: any, onUpdate: () =
             <ShoppingCart className="h-3.5 w-3.5" /> Sale
           </Button>
 
-          {/* NEW PRIMARY ACTION: RESTOCK */}
           <Button 
             variant="outline" 
             size="sm" 

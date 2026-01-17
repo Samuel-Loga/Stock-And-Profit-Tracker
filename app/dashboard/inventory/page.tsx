@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, List, Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutGrid, List, Search, Plus, ChevronLeft, ChevronRight, Filter, SearchX, PackageX, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InventoryItemCard } from '@/components/dashboard/inventory-item-card';
@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   
   // Pagination State
@@ -33,10 +34,12 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchInventory(); }, []);
 
-  // Filter logic
-  const filteredItems = items.filter(item => 
-    item.item_name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Combined Filter Logic (Search + Status)
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.item_name.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   // Pagination calculation
   const totalItems = filteredItems.length;
@@ -45,46 +48,62 @@ export default function InventoryPage() {
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
   // Reset to page 1 when search or page size changes
-  const handlePageSizeChange = (val: string) => {
-    setPageSize(parseInt(val));
-    setCurrentPage(1);
-  };
+  const resetPagination = () => setCurrentPage(1);
 
   return (
     <div className="space-y-6 pt-20 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground text-sm">Manage {totalItems} items in your warehouse.</p>
+          <p className="text-muted-foreground text-sm">Real-time stock management and tracking. Manage <b>{totalItems}</b> items in your warehouse.</p>
         </div>
         <Link href="/dashboard/add-stock">
-          <Button className="gap-2 shadow-sm"><Plus className="h-4 w-4" /> Add New Stock</Button>
+          <Button className="gap-2 shadow-md"><Plus className="h-4 w-4" /> Add New Stock</Button>
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-3 rounded-xl border shadow-sm">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search items..." 
-            className="pl-9 border-slate-200" 
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-          />
+      {/* FILTER TOOLBAR */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-white p-3 rounded-xl border shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
+          {/* Search Input */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search items..." 
+              className="pl-9 border-slate-200" 
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); resetPagination(); }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Filter className="h-4 w-4 text-slate-400 hidden md:block" />
+            <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPagination(); }}>
+              <SelectTrigger className="w-full md:w-[160px] h-10">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Items</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="low_stock">Low Stock</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+        <div className="flex items-center gap-4 w-full lg:w-auto justify-between border-t lg:border-t-0 pt-3 lg:pt-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Show:</span>
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="h-9 w-[80px]">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Page Size:</span>
+            <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); resetPagination(); }}>
+              <SelectTrigger className="h-9 w-[70px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="25">25</SelectItem>
                 <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -113,7 +132,33 @@ export default function InventoryPage() {
       </div>
 
       {loading ? (
-        <div className="h-64 flex items-center justify-center">Processing...</div>
+        <div className="h-64 flex items-center justify-center text-muted-foreground">Loading inventory...</div>
+      ) : filteredItems.length === 0 ? (
+        /* --- NEW: EMPTY STATE VIEW --- */
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+          <div className="bg-slate-50 p-4 rounded-full mb-4">
+            {search ? (
+              <SearchX className="h-10 w-10 text-slate-400" />
+            ) : (
+              <PackageX className="h-10 w-10 text-slate-400" />
+            )}
+          </div>
+          <h3 className="text-xl font-bold text-slate-900">
+            {search ? 'No matches found' : `No ${statusFilter.replace('_', ' ')} items`}
+          </h3>
+          <p className="text-muted-foreground text-center text-sm max-w-sm mt-2">
+            {search 
+              ? `We couldn't find anything matching "${search}". Try checking your spelling or using different keywords.`
+              : `You currently don't have any items marked as ${statusFilter.replace('_', ' ')}.`}
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-6 gap-2" 
+            onClick={() => { setSearch(''); setStatusFilter('all'); }}
+          >
+            <RotateCcw className="h-4 w-4" /> Clear All Filters
+          </Button>
+        </div>
       ) : (
         <>
           {view === 'grid' ? (
@@ -127,13 +172,14 @@ export default function InventoryPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-slate-600">Product</th>
-                    <th className="text-left p-4 font-semibold text-slate-600">Cost</th>
-                    <th className="text-left p-4 font-semibold text-slate-600">Selling Price</th>
-                    <th className="text-center p-4 font-semibold text-slate-600">Stock</th>
+                    <th className="text-left p-4 font-semibold text-slate-600 w-1/4">Product</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Purchase Cost</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Selling Price</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Status</th>
+                    <th className="text-left p-4 font-semibold text-slate-600">In Stock</th>
                     <th className="text-left p-4 font-semibold text-slate-600">Added On</th>
                     <th className="text-left p-4 font-semibold text-slate-600">Updated On</th>
-                    <th className="p-4">Actions</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
