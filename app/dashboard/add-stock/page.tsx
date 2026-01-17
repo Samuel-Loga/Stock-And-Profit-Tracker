@@ -124,7 +124,7 @@ export default function AddStockPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 py-20">
       <div>
         <h1 className="text-3xl font-bold">Add Stock</h1>
         <p className="text-muted-foreground mt-1 text-sm">Upload photos and manage batch shipments effortlessly.</p>
@@ -223,7 +223,7 @@ export default function AddStockPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="sticky top-8">
+            <div className="sticky top-24">
               <BatchSummaryCard items={(mode === 'single' ? [singleItem] : batchItems).map(i => ({
                 purchase_price: parseFloat(i.purchase_price) || 0,
                 selling_price: parseFloat(i.selling_price) || 0,

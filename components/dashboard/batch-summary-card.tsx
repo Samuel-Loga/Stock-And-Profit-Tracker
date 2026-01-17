@@ -30,15 +30,15 @@ export function BatchSummaryCard({ items }: BatchSummaryProps) {
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-1">
             <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Investment</p>
-            <p className="text-2xl font-bold">${totalInvestment.toFixed(2)}</p>
+            <p className="text-2xl font-bold">K{totalInvestment.toLocaleString()}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Exp. Profit</p>
-            <p className="text-2xl font-bold text-green-400">${expectedProfit.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-green-400">K{expectedProfit.toLocaleString()}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Potential Revenue</p>
-            <p className="text-lg font-semibold">${totalRevenue.toFixed(2)}</p>
+            <p className="text-lg font-semibold">K{totalRevenue.toLocaleString()}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">ROI</p>

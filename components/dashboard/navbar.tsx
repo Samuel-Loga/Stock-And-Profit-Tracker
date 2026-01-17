@@ -5,13 +5,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Package, LogOut, LayoutDashboard, PackagePlus, ShoppingCart, RefreshCcw } from 'lucide-react';
+import { Package, LogOut, LayoutDashboard, PackagePlus, ShoppingCart, RefreshCcw, ReceiptText } from 'lucide-react';
 import { signOut } from '@/lib/auth';
 import { NavbarRestockDialog } from './navbar-restock-dialog';
+import { ExpenseDialog } from './expense-dialog';
 
 export function Navbar() {
   const router = useRouter();
   const [restockOpen, setRestockOpen] = useState(false);
+  const [expenseOpen, setExpenseOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -24,7 +26,7 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="border-b bg-white">
+      <nav className="border-b bg-white fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
@@ -56,6 +58,15 @@ export function Navbar() {
                   <RefreshCcw className="h-4 w-4" />
                   Restock
                 </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => setExpenseOpen(true)}
+                >
+                  <ReceiptText className="h-4 w-4" />
+                  Add Expense
+                </Button>
                 <Link href="/dashboard/inventory">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <ShoppingCart className="h-4 w-4" />
@@ -72,6 +83,7 @@ export function Navbar() {
         </div>
       </nav>
 
+      <ExpenseDialog open={expenseOpen} onOpenChange={setExpenseOpen} onSuccess={() => window.location.reload()} />
       <NavbarRestockDialog open={restockOpen} onOpenChange={setRestockOpen} />
     </>
   );

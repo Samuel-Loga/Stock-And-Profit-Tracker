@@ -6,10 +6,11 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { SalesAnalytics } from '@/components/dashboard/sales-analytics';
 import { SalesHistory } from '@/components/dashboard/sales-history';
 import { StockHistory } from '@/components/dashboard/stock-history';
+import { ExpensesTable } from '@/components/dashboard/expenses-table';
 import { RecentActivities } from '@/components/dashboard/recent-activities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Package, DollarSign, Receipt, TrendingUp, AlertCircle } from 'lucide-react';
 import { Database } from '@/types/database';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -21,11 +22,14 @@ export default function DashboardPage() {
     expectedProfit: 0,
     actualProfit: 0,
     lowStockItems: 0,
+    totalExpenses: 0,
   });
   const [sales, setSales] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [restocks, setRestocks] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalExpenses, setTotalExpenses] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -59,6 +63,14 @@ export default function DashboardPage() {
         .order('date_added', { ascending: false });
       if (restockError && restockError.code !== '42P01') throw restockError;
 
+      // 4. Fetch Expenses
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expenses')
+        .select('*, inventory(item_name)')
+        .eq('user_id', user.id)
+        .order('expense_date', { ascending: false });
+      if (expenseError) throw expenseError;
+
       if (invData) {
         // Stats Calculations
         const totalItems = invData.length;
@@ -83,12 +95,15 @@ export default function DashboardPage() {
           item => item.status === 'low_stock'
         ).length;
 
+        const totalExpensesAmount = expenseData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+
         setStats({
           totalItems,
           totalValue,
           expectedProfit,
           actualProfit,
           lowStockItems,
+          totalExpenses: totalExpensesAmount,
         });
         
         setInventory(invData);
@@ -96,6 +111,7 @@ export default function DashboardPage() {
 
       setSales(salesData || []);
       setRestocks(restockData || []);
+      setExpenses(expenseData || []);
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -133,16 +149,22 @@ export default function DashboardPage() {
           description="Capital deployed in stock"
         />
         <StatsCard
-          title="Expected Profit"
-          value={`K${stats.expectedProfit.toLocaleString()}`} 
-          icon={TrendingUp}
-          description="Potential from remaining stock"
-        />
-        <StatsCard
-          title="Actual Profit"
+          title="Gross Profit"
           value={`K${stats.actualProfit.toLocaleString()}`}
           icon={DollarSign}
-          description="Total realized profit"
+          description="Profit before expenses"
+        />
+        <StatsCard
+          title="Total Expenses"
+          value={`K${stats.totalExpenses.toLocaleString()}`}
+          icon={Receipt}
+          description="Operating overheads"
+        />
+        <StatsCard
+          title="Net Profit"
+          value={`K${(stats.actualProfit - stats.totalExpenses).toLocaleString()}`} // Actual Profit minus Expenses
+          icon={TrendingUp}
+          description="Actual profit after expenses"
         />
       </div>
 
@@ -169,6 +191,7 @@ export default function DashboardPage() {
           <TabsTrigger value="overview">Analytics</TabsTrigger>
           <TabsTrigger value="sales-history">Sale History</TabsTrigger>
           <TabsTrigger value="stock-history">Stock History</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
         
         {/* Tab 1: Analytics & Recent Activities */}
@@ -185,12 +208,16 @@ export default function DashboardPage() {
         
         {/* Tab 2: Detailed Sales Log */}
         <TabsContent value="sales-history">
-          <SalesHistory sales={sales} />
+          <SalesHistory sales={sales} onRefresh={loadDashboardData} />
         </TabsContent>
 
         {/* Tab 3: Detailed Stocking Log */}
         <TabsContent value="stock-history">
           <StockHistory inventory={inventory} restocks={restocks} />
+        </TabsContent>
+
+        <TabsContent value="expenses"> {/* NEW TAB CONTENT */}
+          <ExpensesTable expenses={expenses} onRefresh={loadDashboardData} />
         </TabsContent>
       </Tabs>
     </div>
