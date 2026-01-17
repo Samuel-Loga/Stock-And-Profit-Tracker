@@ -46,11 +46,15 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
 
   const stockPercentage = (item.quantity_remaining / item.initial_quantity) * 100;
 
+  // Operational Intelligence: Progit Margin Calculation
+  const margin = ((item.selling_price - item.purchase_price) / item.selling_price) * 100;
+
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-6">
           <div className="flex gap-6">
+            {/* Top Image Section with Floating Badges */}
             <div className="relative h-28 w-28 flex-shrink-0">
               {item.image_url ? (
                 <img src={item.image_url} alt={item.item_name} className="h-full w-full rounded-xl object-cover border shadow-sm" />
@@ -59,6 +63,13 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                   <Package className="h-10 w-10 text-slate-300" />
                 </div>
               )}
+              
+              {/* MARGIN */}
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-blue-700 text-[10px] font-bold">
+                  {margin.toFixed(1)}% MARGIN
+                </p>
+              </div>
             </div>
 
             <div className="flex-1 min-w-0">
@@ -66,7 +77,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-xl truncate tracking-tight">{item.item_name}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
-                    {item.description || "No description provided for this item."}
+                    {item.description || "No description provided."}
                   </p>
                 </div>
                 <Badge className={`${getStatusColor(item.status)} h-6`}>

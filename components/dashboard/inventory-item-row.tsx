@@ -47,6 +47,9 @@ export function InventoryItemRow({ item, onUpdate }: { item: any, onUpdate: () =
     }
   };
 
+  // Profit margin calculation
+  const margin = ((item.selling_price - item.purchase_price) / item.selling_price) * 100;
+
   return (
     <tr className="hover:bg-slate-50/50 transition-colors border-b last:border-0">
       {/* Product Column - Takes up most space */}
@@ -74,7 +77,12 @@ export function InventoryItemRow({ item, onUpdate }: { item: any, onUpdate: () =
       </td>
 
       <td className="p-4 text-center font-bold text-slate-900 whitespace-nowrap">
-        K{Number(item.selling_price).toLocaleString()}
+        <div className="flex flex-col items-end">
+          <span className="font-bold text-slate-900">K{Number(item.selling_price).toLocaleString()}</span>
+          <span className="text-[10px] font-bold text-blue-600 tracking-tight">
+            {margin.toFixed(0)}% MARGIN
+          </span>
+        </div>
       </td>
 
       <td className="p-4 px-6 text-center">
