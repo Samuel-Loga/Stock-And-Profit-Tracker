@@ -1,7 +1,6 @@
-// app/dashboard/add-stock/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,14 +10,30 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BatchSummaryCard } from '@/components/dashboard/batch-summary-card';
-import { Plus, Trash2, Package, Layers, Upload, X } from 'lucide-react';
+import { Plus, Trash2, Package, Layers, Upload, X, Tag } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 export default function AddStockPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'single' | 'batch'>('single');
   const [batchName, setBatchName] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   
+  // Fetch dynamic categories
+  useEffect(() => {
+    const fetchCats = async () => {
+      const { data } = await supabase.from('categories').select('id, name').order('name');
+      if (data) {
+        setCategories(data);
+        if (data.length > 0) setSelectedCategoryId(data[0].id); // Default to first cat
+      }
+    };
+    fetchCats();
+  }, []);
+
   // State for Batch Mode
   const [batchItems, setBatchItems] = useState([{
     tempId: Math.random(),
@@ -77,19 +92,20 @@ export default function AddStockPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) throw new Error("Authentication required");
 
       const processingItems = mode === 'single' ? [singleItem] : batchItems;
 
       const totalInvestment = processingItems.reduce((sum, i) => sum + (parseFloat(i.purchase_price || '0') * parseInt(i.initial_quantity || '0')), 0);
       const totalRev = processingItems.reduce((sum, i) => sum + (parseFloat(i.selling_price || '0') * parseInt(i.initial_quantity || '0')), 0);
 
-      // 1. Create Batch Record
+      // 1. Sending category to the BATCH record
       const { data: batch, error: batchErr } = await supabase
         .from('batches')
         .insert([{
           user_id: user.id,
           batch_name: batchName || (mode === 'single' ? `Single: ${singleItem.item_name}` : `Batch - ${new Date().toLocaleDateString()}`),
+          category_id: selectedCategoryId,
           total_investment: totalInvestment,
           expected_revenue: totalRev,
           expected_profit: totalRev - totalInvestment
@@ -98,13 +114,14 @@ export default function AddStockPage() {
 
       if (batchErr) throw batchErr;
 
-      // 2. Insert Inventory Items
+      // 2. Sending category to each INVENTORY item
       const inventoryData = processingItems.map(i => ({
         user_id: user.id,
         batch_id: batch.id,
         item_name: i.item_name,
         description: i.description,
         image_url: i.image_url,
+        category_id: selectedCategoryId,
         purchase_price: parseFloat(i.purchase_price),
         selling_price: parseFloat(i.selling_price),
         initial_quantity: parseInt(i.initial_quantity),
@@ -125,9 +142,26 @@ export default function AddStockPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 py-20">
-      <div>
-        <h1 className="text-3xl font-bold">Add Stock</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Upload photos and manage batch shipments effortlessly.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Add Stock</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Upload photos and manage batch shipments effortlessly.</p>
+        </div>
+        
+        {/* Global Category Selector */}
+        <div className="w-full md:w-64 space-y-2">
+          <Label className="flex items-center gap-2"><Tag className="h-4 w-4" /> Stock Category</Label>
+          <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Tabs defaultValue="single" onValueChange={(v) => setMode(v as 'single' | 'batch')} className="space-y-6">
@@ -185,10 +219,10 @@ export default function AddStockPage() {
                   <CardContent className="space-y-8 pt-6">
                     {batchItems.map((item, index) => (
                       <div key={item.tempId} className="p-6 border rounded-xl bg-slate-50/50 relative group space-y-6">
-                        <Button variant="ghost" size="icon" onClick={() => setBatchItems(batchItems.filter(i => i.tempId !== item.tempId))} className="absolute right-2 top-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" type="button" size="icon" onClick={() => setBatchItems(batchItems.filter(i => i.tempId !== item.tempId))} className="absolute right-2 top-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        <div className="flex gap-6">
+                        <div className="flex flex-col md:flex-row gap-6">
                           <ImageUpload 
                             compact 
                             imagePreview={item.image_url} 
@@ -205,9 +239,9 @@ export default function AddStockPage() {
                               <Input className="h-9 text-sm" value={item.description} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, description: e.target.value} : i))} />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                              <div><Label className="text-xs">Supplier Cost (K)</Label><Input type="number" step="0.01" value={item.purchase_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, purchase_price: e.target.value} : i))} required /></div>
-                              <div><Label className="text-xs">Quantity</Label><Input type="number" value={item.initial_quantity} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, initial_quantity: e.target.value} : i))} required /></div>
-                              <div><Label className="text-xs font-bold text-blue-600">Selling Price (K)</Label><Input type="number" step="0.01" value={item.selling_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, selling_price: e.target.value} : i))} className="border-blue-200" required /></div>
+                              <div><Label className="text-[10px] uppercase font-bold text-slate-500">Cost (K)</Label><Input type="number" step="0.01" value={item.purchase_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, purchase_price: e.target.value} : i))} required /></div>
+                              <div><Label className="text-[10px] uppercase font-bold text-slate-500">Qty</Label><Input type="number" value={item.initial_quantity} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, initial_quantity: e.target.value} : i))} required /></div>
+                              <div><Label className="text-[10px] uppercase font-bold text-blue-600">Price (K)</Label><Input type="number" step="0.01" value={item.selling_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, selling_price: e.target.value} : i))} className="border-blue-200" required /></div>
                             </div>
                           </div>
                         </div>
@@ -229,7 +263,7 @@ export default function AddStockPage() {
                 selling_price: parseFloat(i.selling_price) || 0,
                 quantity: parseInt(i.initial_quantity) || 0
               }))} />
-              <Button type="submit" form="stock-form" disabled={loading} className="w-full h-12 text-lg shadow-lg mt-6">
+              <Button type="submit" form="stock-form" disabled={loading} className="w-full h-12 text-lg shadow-lg mt-6 bg-slate-900 hover:bg-slate-800">
                 {loading ? 'Processing...' : 'Confirm and Stock'}
               </Button>
             </div>
@@ -244,7 +278,7 @@ function ImageUpload({ imagePreview, onImageChange, onRemove, compact = false }:
   const sizeClass = compact ? "h-24 w-24" : "h-32 w-32";
   return (
     <div className="space-y-2">
-      <Label className={compact ? "text-xs" : ""}>Item Image</Label>
+      <Label className={compact ? "text-[10px] uppercase font-bold text-slate-500" : ""}>Item Image</Label>
       <div className="flex items-start gap-4">
         {imagePreview ? (
           <div className="relative">

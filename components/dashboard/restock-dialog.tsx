@@ -28,13 +28,13 @@ interface RestockDialogProps {
 export function RestockDialog({ item, open, onOpenChange, onSuccess }: RestockDialogProps) {
   const [loading, setLoading] = useState(false);
   const [quantity, setQuantity] = useState('');
-  const [supplierCost, setSupplierCost] = useState(item.purchase_price.toString());
-  const [sellingPrice, setSellingPrice] = useState(item.selling_price.toString());
+  const [supplierCost, setSupplierCost] = useState(item.purchase_price.toLocaleString());
+  const [sellingPrice, setSellingPrice] = useState(item.selling_price.toLocaleString());
 
   useEffect(() => {
     if (open) {
-      setSupplierCost(item.purchase_price.toString());
-      setSellingPrice(item.selling_price.toString());
+      setSupplierCost(item.purchase_price.toLocaleString());
+      setSellingPrice(item.selling_price.toLocaleString());
       setQuantity('');
     }
   }, [open, item]);
@@ -104,15 +104,15 @@ export function RestockDialog({ item, open, onOpenChange, onSuccess }: RestockDi
               <Input id="qty" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cost">Supplier Cost ($)</Label>
+              <Label htmlFor="cost">Supplier Cost (K)</Label>
               <Input id="cost" type="number" step="0.01" value={supplierCost} onChange={(e) => setSupplierCost(e.target.value)} required />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price" className="font-semibold text-primary">New Selling Price ($)</Label>
+            <Label htmlFor="price" className="font-semibold text-primary">New Selling Price (K)</Label>
             <Input id="price" type="number" step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} required />
-            <p className="text-xs text-muted-foreground">Current price: ${item.selling_price}</p>
+            <p className="text-xs text-muted-foreground">Current price: K{item.selling_price.toLocaleString()}</p>
           </div>
 
           <DialogFooter>

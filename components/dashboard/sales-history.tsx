@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, ShoppingBag, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Download, ShoppingBag, MoreVertical, Edit2, Trash2, Tag } from 'lucide-react'; // Added Tag icon
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/lib/supabase/client';
 import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog';
@@ -21,12 +21,14 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
    * Generates and downloads a CSV report of the sales history.
    */
   const exportToCSV = () => {
-    const headers = ["Date,Item,Channel,Quantity,Unit Price,Total Revenue,Profit\n"];
+    // 1. Updated CSV Headers to include Discount
+    const headers = ["Date,Time,Item,Channel,Quantity,Unit Price,Discount,Total Revenue,Profit\n"];
     const rows = sales.map(sale => {
       const dateObj = new Date(sale.sale_date);
-      const totalRevenue = sale.quantity_sold * sale.selling_price;
+      const discount = sale.discount_amount || 0;
+      const totalRevenue = (sale.quantity_sold * sale.selling_price) - discount; // Adjusted Revenue
       const unitCost = sale.inventory?.purchase_price || 0;
-      const totalProfit = (sale.selling_price - unitCost) * sale.quantity_sold;
+      const totalProfit = totalRevenue - (unitCost * sale.quantity_sold); // Adjusted Profit
       
       return [
         dateObj.toLocaleDateString(),
@@ -35,6 +37,7 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
         `"${sale.sales_channel || 'Direct'}"`,
         sale.quantity_sold,
         sale.selling_price,
+        discount,
         totalRevenue,
         totalProfit
       ].join(",");
@@ -52,17 +55,13 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
 
   const confirmDelete = async () => {
     if (deleteSale) {
-      // 1. Return stock to inventory using RPC
       const { error: invError } = await supabase.rpc('return_stock_on_sale_deletion', {
         target_inventory_id: deleteSale.inventory_id,
         qty_to_return: deleteSale.quantity_sold
       });
 
       if (invError) return alert("Failed to return stock");
-
-      // 2. Delete sale record
       await supabase.from('sales').delete().eq('id', deleteSale.id);
-      
       onRefresh();
       setDeleteSale(null);
     }
@@ -80,7 +79,6 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
             A detailed log of all completed transactions and their performance.
           </p>
         </div>
-        {/* ... Export Button ... */}
         <Button 
           variant="outline" 
           size="sm" 
@@ -93,7 +91,7 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border bg-white">
+        <div className="rounded-md border bg-white overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
@@ -101,9 +99,10 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
                 <TableHead>Item Details</TableHead>
                 <TableHead>Channel</TableHead>
                 <TableHead className="text-center">Quantity</TableHead>
-                <TableHead className="text-center">Supplier Cost</TableHead>
-                <TableHead className="text-center">Selling Price</TableHead>
-                <TableHead className="text-center">Total Revenue</TableHead>
+                <TableHead className="text-right">Unit Price</TableHead>
+                {/* 2. Added New Discount Column */}
+                <TableHead className="text-right text-red-600">Discount</TableHead>
+                <TableHead className="text-right">Total Revenue</TableHead>
                 <TableHead className="text-right">Net Profit</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -111,97 +110,102 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
             <TableBody>
               {sales.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                    No sales recorded yet. Start selling to see your history here!
+                  <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                    No sales recorded yet.
                   </TableCell>
                 </TableRow>
               ) : (
                 sales.map((sale) => {
-                const dateObj = new Date(sale.created_at || sale.sale_date);
-                const revenue = sale.quantity_sold * sale.selling_price;
-                const profit = (sale.selling_price - (sale.inventory?.purchase_price || 0)) * sale.quantity_sold;
+                  const dateObj = new Date(sale.created_at || sale.sale_date);
+                  const discount = sale.discount_amount || 0;
+                  // 3. Calculation Logic Update
+                  const totalRevenue = (sale.quantity_sold * sale.selling_price) - discount;
+                  const unitCost = sale.inventory?.purchase_price || 0;
+                  const profit = totalRevenue - (unitCost * sale.quantity_sold);
 
-                return (
-                  <TableRow key={sale.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="whitespace-nowrap text-xs font-medium">
-                      {dateObj.toLocaleDateString()}
-                      <span className="text-muted-foreground ml-1">
-                        {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex flex-col whitespace-nowrap">
-                          <span className="font-semibold text-slate-900">
+                  return (
+                    <TableRow key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="whitespace-nowrap text-[11px] font-medium">
+                        {dateObj.toLocaleDateString()}
+                        <span className="text-muted-foreground ml-1">
+                          {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900 text-sm">
                             {sale.inventory?.item_name || 'Deleted Item'}
                           </span>
                           {sale.notes && (
-                            <span className="text-[10px] text-muted-foreground line-clamp-1 italic">
-                              "{sale.notes}"
-                            </span>
+                            <span className="text-[10px] text-muted-foreground italic italic">"{sale.notes}"</span>
                           )}
                         </div>
                       </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-[10px] uppercase font-bold bg-slate-100">
-                        {sale.sales_channel || 'Direct'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-medium">{sale.quantity_sold}</TableCell>
-                    <TableCell className="text-center font-medium">
-                        {sale.inventory?.purchase_price || 'N/A. Check inventory.'}
-                    </TableCell>
-                    <TableCell className="text-center font-medium">
-                        {sale.selling_price}
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-slate-700">
-                        K{revenue.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge 
-                        className={`${
-                          profit >= 0 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-red-100 text-red-800'
-                        } border-transparent text-[11px] font-bold`}
-                      >
-                        {profit >= 0 ? '+' : ''}K{profit.toLocaleString()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu 
-                        open={dropdownOpen === sale.id} 
-                        onOpenChange={(open) => setDropdownOpen(open ? sale.id : null)}
-                      >
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={(e) => {
-                            e.preventDefault();
-                            setDropdownOpen(null);
-                            setTimeout(() => setEditSale(sale), 10);
-                          }}>
-                            <Edit2 className="mr-2 h-4 w-4" /> Edit Sale
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onSelect={(e) => {
-                            e.preventDefault();
-                            setDropdownOpen(null);
-                            setTimeout(() => setDeleteSale(sale), 10);
-                          }}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Sale
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-             )}
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[9px] uppercase font-bold bg-slate-100">
+                          {sale.sales_channel || 'Direct'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-medium">{sale.quantity_sold}</TableCell>
+                      <TableCell className="text-right font-medium">K{sale.selling_price.toLocaleString()}</TableCell>
+                      
+                      {/* 4. Display the Discount Amount */}
+                      <TableCell className="text-right">
+                        {discount > 0 ? (
+                          <span className="text-xs font-bold text-red-500">-K{discount.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right font-bold text-slate-700">
+                        K{totalRevenue.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge 
+                          className={`${
+                            profit >= 0 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-red-100 text-red-800'
+                          } border-transparent text-[10px] font-bold`}
+                        >
+                          {profit >= 0 ? '+' : ''}K{profit.toLocaleString()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu 
+                          open={dropdownOpen === sale.id} 
+                          onOpenChange={(open) => setDropdownOpen(open ? sale.id : null)}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={(e) => {
+                              e.preventDefault();
+                              setDropdownOpen(null);
+                              setTimeout(() => setEditSale(sale), 10);
+                            }}>
+                              <Edit2 className="mr-2 h-4 w-4" /> Edit Sale
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onSelect={(e) => {
+                              e.preventDefault();
+                              setDropdownOpen(null);
+                              setTimeout(() => setDeleteSale(sale), 10);
+                            }}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete Sale
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Delete Confirmation Modal */}
         {deleteSale && (
           <DeleteConfirmDialog 
             open={!!deleteSale} 
@@ -212,7 +216,6 @@ export function SalesHistory({ sales, onRefresh }: { sales: any[], onRefresh: ()
           />
         )}
 
-        {/* Edit Modal (Updates existing RecordSaleDialog) */}
         {editSale && (
           <RecordSaleDialog 
             item={editSale.inventory} 
