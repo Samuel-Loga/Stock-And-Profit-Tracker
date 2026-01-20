@@ -1,99 +1,124 @@
 // components/dashboard/category-stock-chart.tsx
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell 
-} from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Sector } from 'recharts';
+import { cn } from '@/lib/utils';
 
-const COLORS = ['#0f172a', '#2563eb', '#16a34a', '#db2777', '#ca8a04', '#7c3aed'];
+// Interface updated to accept the unified data prop
+interface CategoryStockChartProps {
+  data: {
+    id: string | number;
+    name: string;
+    profit: number;
+    unitsSold: number;
+    stockValue: number;
+    color: string;
+  }[];
+}
 
-export function CategoryStockChart({ inventory }: { inventory: any[] }) {
-  if (!inventory || inventory.length === 0) {
+export function CategoryStockChart({ data }: CategoryStockChartProps) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  // We sort by stockValue for the visual layout, but use the pre-assigned colors
+  const chartData = [...data]
+    .filter(d => d.stockValue >= 0)
+    .sort((a, b) => b.stockValue - a.stockValue);
+
+  const totalCapital = chartData.reduce((sum, entry) => sum + entry.stockValue, 0);
+
+  const renderActiveShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        No inventory data available
-      </div>
+      <g>
+        <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 6} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+        <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle} innerRadius={innerRadius - 6} outerRadius={innerRadius} fill={fill} opacity={0.3} />
+      </g>
     );
-  }
-
-  // 1. Debug log to see if data is actually arriving (Check browser console)
-  console.log("Chart received inventory:", inventory);
-
-  // 2. Safely aggregate data
-  const dataMap = inventory.reduce((acc: any, item: any) => {
-    const catName = item.categories?.name || 'Uncategorized';
-    const value = Number(item.quantity_remaining || 0) * Number(item.purchase_price || 0);
-    
-    if (value > 0) {
-      acc[catName] = (acc[catName] || 0) + value;
-    }
-    return acc;
-  }, {});
-
-  const chartData = Object.entries(dataMap)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a: any, b: any) => b.value - a.value);
-
-  // 3. Fallback if no valid data for bars
-  if (chartData.length === 0) {
-    return (
-      <Card className="col-span-1 lg:col-span-2">
-        <CardHeader><CardTitle>Capital Distribution</CardTitle></CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground italic">
-          Insufficient data for stock distribution.
-        </CardContent>
-      </Card>
-    );
-  }
+  };
 
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Capital Distribution</CardTitle>
-        <CardDescription>Total Kwacha value of current stock by category.</CardDescription>
+    <Card className="col-span-1 border-slate-200 shadow-sm overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-bold">Capital Distribution</CardTitle>
+        <CardDescription className="text-[10px] uppercase font-bold text-slate-400">Value of Current Stock</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} layout="vertical" margin={{ left: 40, right: 40 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-            <XAxis type="number" hide />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              axisLine={false} 
-              tickLine={false} 
-              width={100}
-              style={{ fontSize: '12px', fontWeight: 'bold' }}
-            />
-            <Tooltip 
-              cursor={{ fill: '#f1f5f9' }}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="bg-slate-900 text-white p-2 rounded-lg shadow-xl text-xs">
-                      <p className="font-bold">{payload[0].payload.name}</p>
-                      <p>Value: K{Number(payload[0].value).toLocaleString()}</p>
+      
+      <CardContent className="p-0">
+        <div className="flex h-[350px] w-full">
+          {/* Left: Pie Chart */}
+          <div className="flex-1 h-full relative min-w-[50%]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  activeIndex={activeIndex === null ? undefined : activeIndex}
+                  activeShape={renderActiveShape}
+                  data={chartData}
+                  cx="50%" cy="50%"
+                  innerRadius={55} outerRadius={85}
+                  paddingAngle={2}
+                  dataKey="stockValue"
+                  stroke="none"
+                  onMouseEnter={(_, index) => setActiveIndex(index)}
+                  onMouseLeave={() => setActiveIndex(null)}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${entry.id}`} 
+                      fill={entry.color} // CRITICAL: Uses stable color from parent
+                      opacity={activeIndex === null || activeIndex === index ? 1 : 0.4}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d = payload[0].payload;
+                      const percentage = totalCapital > 0 ? ((d.stockValue / totalCapital) * 100).toFixed(1) : 0;
+                      return (
+                        <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl">
+                          <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">{d.name}</p>
+                          <p className="text-sm font-black">K{d.stockValue.toLocaleString()}</p>
+                          <p className="text-[10px] text-emerald-400 font-bold">{percentage}% of Total</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-900 font-black text-sm">Total</text>
+                <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-500 font-bold text-[10px]">K{totalCapital.toLocaleString()}</text>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Right: Vertical Scrollable Legend */}
+          <div className="w-[40%] max-w-[180px] border-l border-slate-100 bg-slate-50/50 h-full overflow-y-auto text-[11px] p-3 space-y-1">
+              {chartData.map((entry, index) => {
+                 const isActive = activeIndex === index;
+                 const isZero = entry.stockValue === 0;
+
+                 return (
+                  <div 
+                    key={entry.id}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onMouseLeave={() => setActiveIndex(null)}
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer",
+                      isActive ? "bg-white shadow-sm ring-1 ring-slate-200" : ""
+                    )}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                      <span className={cn("truncate font-medium", isActive ? "text-slate-900" : "text-slate-600")}>{entry.name}</span>
                     </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                    {!isZero && <span className="font-bold ml-1">{((entry.stockValue / totalCapital) * 100).toFixed(0)}%</span>}
+                  </div>
+                 )
+              })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

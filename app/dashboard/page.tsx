@@ -12,7 +12,6 @@ import { RecentActivities } from '@/components/dashboard/recent-activities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, DollarSign, Receipt, TrendingUp, AlertCircle, Tag } from 'lucide-react';
-import { CategoryStockChart } from '@/components/dashboard/category-stock-chart';
 
 // Helper to calculate top performing category based on profit
 const getCategoryPerformance = (inventory: any[], sales: any[]) => {
@@ -51,6 +50,7 @@ export default function DashboardPage() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [restocks, setRestocks] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,6 +90,12 @@ export default function DashboardPage() {
         .eq('user_id', user.id)
         .order('expense_date', { ascending: false });
 
+      // 5. Fetch All Categories (for charts)
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
       if (invData) {
         // Calculate Total Inventory Investment
         const totalValue = invData.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity_remaining), 0);
@@ -118,6 +124,7 @@ export default function DashboardPage() {
         });
         
         setInventory(invData);
+        setAllCategories(catData || []);
       }
 
       setSales(salesData || []);
@@ -163,9 +170,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mt-16">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
       </div>
 
       {/* Summary Cards */}
@@ -219,14 +226,14 @@ export default function DashboardPage() {
         <TabsContent value="overview">
            <div className="grid gap-4 lg:grid-cols-7">
               {/* Sales Analytics provides the line chart */}
-              <SalesAnalytics sales={sales} />
+              <SalesAnalytics sales={sales} expenses={expenses} />
               {/* Activity Stream provides the live vertical feed */}
               <RecentActivities activities={combinedActivities} />
            </div>
         </TabsContent>
 
         <TabsContent value="analytics">
-           <CategoryAnalytics inventory={inventory} sales={sales} />
+           <CategoryAnalytics inventory={inventory} sales={sales} categories={allCategories} />
         </TabsContent>
 
         <TabsContent value="sales-history">
@@ -241,33 +248,6 @@ export default function DashboardPage() {
           <ExpensesTable expenses={expenses} onRefresh={loadDashboardData} />
         </TabsContent>
       </Tabs>
-
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {inventory.length > 0 ? (
-            <CategoryStockChart inventory={inventory} />
-          ) : (
-            <Card className="h-full flex items-center justify-center border-dashed">
-              <p className="text-sm text-muted-foreground italic">Add inventory to visualize stock levels.</p>
-            </Card>
-          )}
-        </div>
-        
-        <Card className="lg:col-span-1 border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Operational Velocity</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="p-4 bg-emerald-50 rounded-full mb-4">
-              <TrendingUp className="h-10 w-10 text-emerald-600" />
-            </div>
-            <p className="text-2xl font-black text-slate-900">{sales.length}</p>
-            <p className="text-sm text-slate-500 font-medium">Total sales processed this cycle</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
