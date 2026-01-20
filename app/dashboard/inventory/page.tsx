@@ -167,7 +167,7 @@ export default function InventoryPage() {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6 pt-6 pt-20 pb-8">
+    <div className="space-y-6 pt-6 mt-10 pb-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Inventory</h1>
