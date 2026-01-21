@@ -33,6 +33,20 @@ export default function AddStockPage() {
     fetchCats();
   }, []);
 
+  // --- VALIDATION HELPERS ---
+  const preventNegative = (e: React.KeyboardEvent) => {
+    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+      e.preventDefault();
+    }
+  };
+
+  const validateValue = (val: string) => {
+    if (val === "") return ""; // Allow clearing the field
+    const num = parseFloat(val);
+    return num >= 1 ? val : "1"; // Force minimum of 1
+  };
+
+  // --- STATE MANAGEMENT ---
   const [batchItems, setBatchItems] = useState([{
     tempId: Math.random(),
     item_name: '',
@@ -71,15 +85,26 @@ export default function AddStockPage() {
     }]);
   };
 
-  const handleProcessStock = async (e: React.FormEvent) => {
+const handleProcessStock = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Authentication required");
       const processingItems = mode === 'single' ? [singleItem] : batchItems;
-      const totalInvestment = processingItems.reduce((sum, i) => sum + (parseFloat(i.purchase_price || '0') * parseInt(i.initial_quantity || '0')), 0);
-      const totalRev = processingItems.reduce((sum, i) => sum + (parseFloat(i.selling_price || '0') * parseInt(i.initial_quantity || '0')), 0);
+      
+      // Final sanity check before DB submission
+      const isValid = processingItems.every(i => 
+        parseFloat(i.purchase_price) >= 1 && 
+        parseFloat(i.selling_price) >= 1 && 
+        parseInt(i.initial_quantity) >= 1
+      );
+
+      if (!isValid) throw new Error("All quantities and prices must be at least 1");
+
+      const totalInvestment = processingItems.reduce((sum, i) => sum + (parseFloat(i.purchase_price) * parseInt(i.initial_quantity)), 0);
+      const totalRev = processingItems.reduce((sum, i) => sum + (parseFloat(i.selling_price) * parseInt(i.initial_quantity)), 0);
+
       const { data: batch, error: batchErr } = await supabase.from('batches').insert([{
         user_id: user.id,
         batch_name: batchName || (mode === 'single' ? `Single: ${singleItem.item_name}` : `Batch - ${new Date().toLocaleDateString()}`),
@@ -88,7 +113,9 @@ export default function AddStockPage() {
         expected_revenue: totalRev,
         expected_profit: totalRev - totalInvestment
       }]).select().single();
+
       if (batchErr) throw batchErr;
+
       const inventoryData = processingItems.map(i => ({
         user_id: user.id,
         batch_id: batch.id,
@@ -102,8 +129,10 @@ export default function AddStockPage() {
         quantity_remaining: parseInt(i.initial_quantity),
         status: 'available'
       }));
+
       const { error: invErr } = await supabase.from('inventory').insert(inventoryData);
       if (invErr) throw invErr;
+
       router.push('/dashboard/inventory');
     } catch (error: any) {
       alert(error.message);
@@ -112,8 +141,8 @@ export default function AddStockPage() {
     }
   };
 
-  const labelStyle = "text-xs font-bold uppercase tracking-wider text-slate-800";
-  const inputStyle = "h-11 font-bold text-slate-900 border-slate-300 focus-visible:ring-slate-950 transition-all";
+  const labelStyle = "text-xs font-medium uppercase tracking-wider text-slate-800";
+  const inputStyle = "h-11 font-medium text-slate-900 border-slate-300 focus-visible:ring-slate-950 transition-all";
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 mt-8 py-10 px-4">
@@ -164,10 +193,10 @@ export default function AddStockPage() {
             <form id="stock-form" onSubmit={handleProcessStock}>
               <TabsContent value="single" className="mt-0 outline-none">
                 <Card className="border-slate-200 shadow-lg overflow-hidden border-t-4 border-t-slate-900">
-                  <div className="p-6 bg-slate-50 border-b border-slate-200">
+                  <div className="p-8 bg-slate-50 border-b border-slate-200">
                     <div>
                       <CardTitle className="text-xl font-bold text-slate-950">Product Specifications</CardTitle>
-                      <CardDescription className="text-slate-600 font-bold tracking-tight">Standard details for a single inventory unit.</CardDescription>
+                      <CardDescription className="text-slate-600 font-medium tracking-tight">Standard details for a single inventory unit.</CardDescription>
                     </div>
                   </div>
                   <CardContent className="p-8 space-y-8 bg-white">
@@ -180,26 +209,26 @@ export default function AddStockPage() {
                       <div className="flex-1 space-y-6">
                         <div> 
                           <Label className={labelStyle}>Item Name</Label>
-                          <Input value={singleItem.item_name} onChange={(e) => setSingleItem({...singleItem, item_name: e.target.value})} placeholder="e.g. iPhone 15 Pro Max" className={inputStyle} required />
+                          <Input value={singleItem.item_name} onChange={(e) => setSingleItem({...singleItem, item_name: e.target.value})} placeholder="e.g. iPhone 15 Pro Max" className={cn(inputStyle, "border-blue-200")} required />
                         </div>
 
                         <div className="space-y-2">
                           <Label className={labelStyle}>Description (Optional)</Label>
-                          <Textarea value={singleItem.description} onChange={(e) => setSingleItem({...singleItem, description: e.target.value})} placeholder="Add specs, color, or condition..." className="resize-none h-24 font-bold text-slate-900 border-slate-300 focus-visible:ring-slate-950" />
+                          <Textarea value={singleItem.description} onChange={(e) => setSingleItem({...singleItem, description: e.target.value})} placeholder="Add specs, color, or condition..." className={cn(inputStyle, "border-blue-200")} />
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100">
                           <div className="space-y-2">
                             <Label className={labelStyle}>Supplier Cost (K)</Label>
-                            <Input type="number" step="0.01" min="1" value={singleItem.purchase_price} onChange={(e) => setSingleItem({...singleItem, purchase_price: e.target.value})} className={inputStyle} required />
+                            <Input type="number" step="0.01" min="1" onKeyDown={preventNegative} value={singleItem.purchase_price} onChange={(e) => setSingleItem({...singleItem, purchase_price: validateValue(e.target.value)})} className={cn(inputStyle, "border-blue-200")} required />
                           </div>
                           <div className="space-y-2">
                             <Label className={labelStyle}>Quantity</Label>
-                            <Input type="number" min="1" value={singleItem.initial_quantity} onChange={(e) => setSingleItem({...singleItem, initial_quantity: e.target.value})} className={inputStyle} required />
+                            <Input type="number" min="1" onKeyDown={preventNegative} value={singleItem.initial_quantity} onChange={(e) => setSingleItem({...singleItem, initial_quantity: validateValue(e.target.value)})} className={cn(inputStyle, "border-blue-200")} required />
                           </div>
                           <div className="space-y-2">
-                            <Label className={cn(labelStyle, "text-blue-800 font-bold")}>Selling Price (K)</Label>
-                            <Input type="number" step="0.01" min="1" value={singleItem.selling_price} onChange={(e) => setSingleItem({...singleItem, selling_price: e.target.value})} className="h-11 border-blue-400 bg-blue-50/50 text-blue-950 font-bold text-lg focus-visible:ring-blue-600" required />
+                            <Label className={labelStyle}>Selling Price (K)</Label>
+                            <Input type="number" step="0.01" min="1" onKeyDown={preventNegative} value={singleItem.selling_price} onChange={(e) => setSingleItem({...singleItem, selling_price: validateValue(e.target.value)})} className="h-10 bg-blue-50 border-blue-200 text-blue-950 font-medium" required />
                           </div>
                         </div>
                       </div>
@@ -214,11 +243,11 @@ export default function AddStockPage() {
                   <div className="p-6 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <CardTitle className="text-xl font-bold text-slate-950">Multiple Items</CardTitle>
-                      <CardDescription className="text-slate-600 font-bold tracking-tight">Bulk entry for multiple inventory items.</CardDescription>
+                      <CardDescription className="text-slate-600 font-medium tracking-tight">Bulk entry for multiple inventory items.</CardDescription>
                     </div>
                     <div className="min-w-[320px]">
-                      <Label className="text-[10px] font-bold uppercase text-slate-500 mb-1.5 block">Reference Name</Label>
-                      <Input placeholder="Batch Name (e.g. Dubai Import #002)" value={batchName} onChange={(e) => setBatchName(e.target.value)} className="bg-white border-slate-300 font-bold text-slate-900 h-11" />
+                      <Label className={labelStyle}>Batch Name</Label>
+                      <Input placeholder="e.g. Dubai Import, etc." value={batchName} onChange={(e) => setBatchName(e.target.value)} className={cn(inputStyle, "border-blue-200")} />
                     </div>
                   </div>
                   <CardContent className="p-6 space-y-6">
@@ -232,26 +261,41 @@ export default function AddStockPage() {
                           <div className="flex-1 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1.5">
-                                <Label className="text-[11px] font-bold uppercase text-slate-700">Product #{index + 1}</Label>
-                                <Input value={item.item_name} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, item_name: e.target.value} : i))} className="h-10 font-bold text-slate-900 border-slate-300" required />
+                                <Label className={labelStyle}>Item #{index + 1} Name</Label>
+                                <Input value={item.item_name} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, item_name: e.target.value} : i))} className={cn(inputStyle, "border-blue-200")} required />
                               </div>
                               <div className="space-y-1.5">
-                                <Label className="text-[11px] font-bold uppercase text-slate-700">Description (Optional)</Label>
-                                <Input value={item.description} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, description: e.target.value} : i))} className="h-10 font-bold text-slate-800" />
+                                <Label className={labelStyle}>Description (Optional)</Label>
+                                <Input value={item.description} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, description: e.target.value} : i))} className={cn(inputStyle, "border-blue-200")} />
                               </div>
                             </div>
                             <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                               <div className="space-y-1">
-                                <Label className="text-[10px] font-bold uppercase text-slate-600">Supplier Cost</Label>
-                                <Input type="number" step="0.01" min="1" value={item.purchase_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, purchase_price: e.target.value} : i))} className="h-10 bg-white border-slate-300 font-bold" required />
+                                <Label className={labelStyle}>Supplier Cost (K)</Label>
+                                <Input type="number" step="0.01" min="1" onKeyDown={preventNegative} value={item.purchase_price} 
+                                  onChange={(e) => { 
+                                    const val = validateValue(e.target.value);
+                                    setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, purchase_price: val} : i))
+                                  }} 
+                                  className={cn(inputStyle, "border-blue-200")} required />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-[10px] font-bold uppercase text-slate-600">Quantity</Label>
-                                <Input type="number" min="1" value={item.initial_quantity} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, initial_quantity: e.target.value} : i))} className="h-10 bg-white border-slate-300 font-bold" required />
+                                <Label className={labelStyle}>Quantity</Label>
+                                <Input type="number" min="1" onKeyDown={preventNegative} value={item.initial_quantity} 
+                                  onChange={(e) => {
+                                    const val = validateValue(e.target.value);
+                                    setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, initial_quantity: val} : i))
+                                  }}
+                                  className={cn(inputStyle, "border-blue-200")} required />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-[10px] font-bold uppercase text-blue-800">Selling Price</Label>
-                                <Input type="number" step="0.01" min="1" value={item.selling_price} onChange={(e) => setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, selling_price: e.target.value} : i))} className="h-10 bg-blue-50 border-blue-200 text-blue-950 font-bold" required />
+                                <Label className={labelStyle}>Selling Price (K)</Label>
+                                <Input type="number" step="0.01" min="1" onKeyDown={preventNegative} value={item.selling_price} 
+                                  onChange={(e) => { 
+                                    const val = validateValue(e.target.value);
+                                    setBatchItems(batchItems.map(i => i.tempId === item.tempId ? {...i, selling_price: val} : i))
+                                  }}
+                                className="h-10 bg-blue-50 border-blue-200 text-blue-950 font-medium" required />
                               </div>
                             </div>
                           </div>
@@ -270,7 +314,7 @@ export default function AddStockPage() {
             </form>
           </div>
 
-          <div className="lg:col-span-4 space-y-6 sticky top-10">
+          <div className="lg:col-span-4 space-y-6 sticky top-10 md:top-24">
             <div className="animate-in fade-in slide-in-from-right-4 duration-700">
               <div className="shadow-xl rounded-3xl border border-slate-200 overflow-hidden ring-4 ring-slate-50">
                   <BatchSummaryCard items={(mode === 'single' ? [singleItem] : batchItems).map(i => ({
@@ -297,7 +341,7 @@ export default function AddStockPage() {
                 <div>
                     <h4 className="text-blue-900 font-bold text-sm mb-1">Important Note</h4>
                     <p className="text-xs text-blue-800 leading-relaxed font-medium">
-                    New inventory is tagged by "Available" status by default. The calculations used include gross revenue and projected ROI. This ensures your "Cost vs Price" ratio is profitable before commitment.
+                    New inventory is tagged with "Available" status by default. The calculations used include gross revenue and projected ROI. This ensures your "Cost vs Price" ratio is profitable before commitment.
                     </p>
                 </div>
               </CardContent>
@@ -313,7 +357,7 @@ function ImageUpload({ imagePreview, onImageChange, onRemove, compact = false }:
   const sizeClass = compact ? "h-28 w-28" : "h-40 w-40";
   return (
     <div className="space-y-3 flex-shrink-0 group">
-      <Label className="text-[11px] uppercase font-bold text-slate-700 tracking-tighter">Product Image</Label>
+      <Label className="text-xs font-medium uppercase tracking-wider text-slate-800">Product Image</Label>
       <div className="flex items-start gap-4">
         {imagePreview ? (
           <div className="relative">
