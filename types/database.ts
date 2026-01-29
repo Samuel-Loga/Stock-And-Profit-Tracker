@@ -1,3 +1,4 @@
+// types/database.ts
 export type Json = any;
 
 export interface Database {
@@ -17,6 +18,7 @@ export interface Database {
           image_url: string | null;
           purchase_price: number;
           selling_price: number;
+          price_updated_at: string | null;
           initial_quantity: number;
           quantity_remaining: number;
           quantity_sold: number;
@@ -24,7 +26,7 @@ export interface Database {
           total_cost: number;
           expected_profit: number;
           actual_profit: number;
-          status: 'active' | 'completed' | 'low_stock';
+          status: 'available' | 'completed' | 'low_stock';
           created_at: string;
           updated_at: string;
         };
@@ -34,6 +36,24 @@ export interface Database {
       sales: {
         Row: any;
         Insert: any;
+        Update: any;
+      };
+      restocks: {
+        Row: {
+          id: string;
+          inventory_id: string;
+          user_id: string;
+          quantity_added: number;
+          cost_per_unit: number;
+          date_added: string;
+        };
+        Insert: {
+          inventory_id: string;
+          user_id: string;
+          quantity_added: number;
+          cost_per_unit: number;
+          date_added?: string;
+        };
         Update: any;
       };
     };

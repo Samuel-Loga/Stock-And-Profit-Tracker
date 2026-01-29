@@ -1,3 +1,4 @@
+// app/dashboard/inventory/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,8 +15,7 @@ import {
   Filter, 
   SearchX, 
   PackageX, 
-  RotateCcw,
-  Tag 
+  RotateCcw 
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +23,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { InventoryItemCard } from '@/components/dashboard/inventory-item-card';
 import { InventoryItemRow } from '@/components/dashboard/inventory-item-row';
 import { BulkCategoryModal } from '@/components/dashboard/bulk-category-modal';
-import { BulkDeleteModal } from '@/components/dashboard/bulk-delete-modal'; // NEW
 import { CategoryManagerDialog } from '@/components/dashboard/category-manager-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
@@ -31,7 +30,6 @@ import Link from 'next/link';
 export default function InventoryPage() {
   // 1. Hydration Fix
   const [mounted, setMounted] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // 2. Data & UI States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -40,7 +38,6 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all'); // NEW: Category Filter State
   const [loading, setLoading] = useState(true);
   
   // 3. Pagination State
@@ -49,7 +46,6 @@ export default function InventoryPage() {
 
   // 4. Bulk Action Modal States
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false); // NEW
   const [targetCategory, setTargetCategory] = useState<{id: string, name: string} | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
 
@@ -61,19 +57,16 @@ export default function InventoryPage() {
 
   const fetchInventory = async () => {
     setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('inventory')
-        .select(`
-          *,
-          batches(batch_name),
-          categories(name)
-        `)
-        .order('created_at', { ascending: false });
-      if (data) setItems(data);
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await supabase
+      .from('inventory')
+      .select(`
+        *,
+        batches(batch_name),
+        categories(name)
+      `)
+      .order('created_at', { ascending: false });
+    if (data) setItems(data);
+    setLoading(false);
   };
 
   const fetchCategories = async () => {
@@ -81,12 +74,11 @@ export default function InventoryPage() {
     if (data) setCategories(data);
   };
 
-  // Combined Filter Logic (Search + Status + Category)
+  // Combined Filter Logic (Search + Status)
   const filteredItems = items.filter(item => {
     const matchesSearch = item.item_name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || item.category_id === categoryFilter; // NEW
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus;
   });
 
   // Pagination calculation
@@ -113,61 +105,35 @@ export default function InventoryPage() {
     );
   };
 
-  // Bulk Actions - Anti-freeze logic via finally blocks
-  const confirmBulkDelete = async () => {
-    if (isProcessing) return;
-    
-    setIsProcessing(true);
-    try {
-      const { error } = await supabase
-        .from('inventory')
-        .delete()
-        .in('id', selectedIds);
-      
-      if (error) throw error;
-
-      setBulkDeleteOpen(false);
+  // Bulk Actions
+  const handleBulkDelete = async () => {
+    if (!confirm(`Permanently delete ${selectedIds.length} items? This cannot be undone.`)) return;
+    const { error } = await supabase.from('inventory').delete().in('id', selectedIds);
+    if (!error) {
       setSelectedIds([]);
-      await fetchInventory();
-    } catch (err: any) {
-      alert("Delete failed: " + err.message);
-    } finally {
-      setIsProcessing(false);
-      document.body.style.pointerEvents = 'auto';
+      fetchInventory();
     }
   };
 
   const confirmBulkCategoryUpdate = async () => {
-    if (!targetCategory || isProcessing) return;
+    if (!targetCategory) return;
+    setBulkLoading(true);
     
-    setIsProcessing(true);
-    try {
-      const { error } = await supabase
-        .from('inventory')
-        .update({ category_id: targetCategory.id })
-        .in('id', selectedIds);
-      
-      if (error) throw error;
-
-      // Reset selection and close modal FIRST
+    const { error } = await supabase
+      .from('inventory')
+      .update({ category_id: targetCategory.id })
+      .in('id', selectedIds);
+    
+    if (!error) {
       setBulkModalOpen(false);
       setSelectedIds([]);
-      setTargetCategory(null);
-
-      // Then refresh data
-      await fetchInventory();
-    } catch (err: any) {
-      alert("Update failed: " + err.message);
-    } finally {
-      setIsProcessing(false);
+      fetchInventory();
     }
+    setBulkLoading(false);
   };
 
-  // Prevent Hydration Mismatch
-  if (!mounted) return null;
-
   return (
-    <div className="space-y-6 pt-6 mt-10 pb-4">
+    <div className="space-y-6 pt-6 pt-16 pb-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Inventory</h1>
@@ -178,7 +144,7 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3">
           <CategoryManagerDialog />
           <Link href="/dashboard/add-stock">
-            <Button className="gap-2 shadow-md bg-slate-900">
+            <Button className="gap-2 shadow-md">
               <Plus className="h-4 w-4" /> Add New Stock
             </Button>
           </Link>
@@ -198,24 +164,10 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto">
             <Filter className="h-4 w-4 text-slate-400 hidden md:block" />
-            
-            {/* Category Filter */}
-            <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); resetPagination(); }}>
-              <SelectTrigger className="w-full md:w-[160px]">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPagination(); }}>
-              <SelectTrigger className="w-full md:w-[160px]">
+              <SelectTrigger className="w-full md:w-[160px] h-10">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -273,20 +225,16 @@ export default function InventoryPage() {
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 text-xs h-8 gap-2">
-                    <Tag className="h-3 w-3" /> Set Category
+                  <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 hover:text-white transition-colors text-xs h-8">
+                    Set Category
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {categories.map(cat => (
-                    <DropdownMenuItem 
-                      key={cat.id} 
-                      onSelect={(e) => {
-                        e.preventDefault(); // CRITICAL: Stops the dropdown from "eating" the click
-                        setTargetCategory({ id: cat.id, name: cat.name });
-                        setBulkModalOpen(true);
-                      }}
-                    >
+                    <DropdownMenuItem key={cat.id} onClick={() => {
+                      setTargetCategory({ id: cat.id, name: cat.name });
+                      setBulkModalOpen(true);
+                    }}>
                       {cat.name}
                     </DropdownMenuItem>
                   ))}
@@ -296,8 +244,8 @@ export default function InventoryPage() {
               <Button 
                 size="sm" 
                 variant="ghost" 
-                className="text-red-400 hover:bg-red-500/20 h-8 text-xs gap-2" 
-                onClick={() => setBulkDeleteOpen(true)}
+                className="text-red-400 hover:bg-red-500/20 hover:text-red-300 text-xs h-8 gap-2" 
+                onClick={handleBulkDelete}
               >
                 <Trash2 className="h-3 w-3" /> Delete Selected
               </Button>
@@ -305,16 +253,17 @@ export default function InventoryPage() {
               <Button 
                 size="sm" 
                 variant="destructive" 
-                className="text-white hover:bg-white/10 transition-colors text-xs h-8"
+                className="text-white hover:bg-white/10 hover:text-white transition-colors text-xs h-8"
                 onClick={() => setSelectedIds([])}
               >
                 Cancel
               </Button>
+            
           </div>
         </div>
       )}
 
-      {/* Modals for bulk actions */}
+      {/* Modal for confirmation */}
       <BulkCategoryModal 
         open={bulkModalOpen}
         onOpenChange={setBulkModalOpen}
@@ -322,14 +271,6 @@ export default function InventoryPage() {
         selectedItems={items.filter(i => selectedIds.includes(i.id))}
         onConfirm={confirmBulkCategoryUpdate}
         loading={bulkLoading}
-      />
-      
-      <BulkDeleteModal 
-        open={bulkDeleteOpen} 
-        onOpenChange={setBulkDeleteOpen} 
-        count={selectedIds.length} 
-        onConfirm={confirmBulkDelete} 
-        loading={bulkLoading} 
       />
 
       {/* Main Content Area */}
@@ -339,14 +280,25 @@ export default function InventoryPage() {
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border-2 border-dashed border-slate-200">
-          <PackageX className="h-12 w-12 text-slate-300 mb-4" />
+          <div className="bg-slate-50 p-6 rounded-full mb-6">
+            {search ? (
+              <SearchX className="h-12 w-12 text-slate-300" />
+            ) : (
+              <PackageX className="h-12 w-12 text-slate-300" />
+            )}
+          </div>
           <h3 className="text-xl font-bold text-slate-900">
-            {search ? 'No matches found' : 'No items match your filters'}
+            {search ? 'No matches found' : `No ${statusFilter.replace('_', ' ')} items`}
           </h3>
+          <p className="text-muted-foreground text-center text-sm max-w-sm mt-3">
+            {search 
+              ? `We couldn't find anything matching "${search}". Try adjusting your filters or search term.`
+              : `There are currently no items in the database matching the "${statusFilter.replace('_', ' ')}" status.`}
+          </p>
           <Button 
             variant="outline" 
             className="mt-8 gap-2 border-slate-200" 
-            onClick={() => { setSearch(''); setStatusFilter('all'); setCategoryFilter('all'); resetPagination(); }}
+            onClick={() => { setSearch(''); setStatusFilter('all'); resetPagination(); }}
           >
             <RotateCcw className="h-4 w-4" /> Reset Filters
           </Button>
@@ -363,22 +315,22 @@ export default function InventoryPage() {
             <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead className="bg-slate-50 border-b">
-                  <tr className="text-slate-600">
+                  <tr>
                     <th className="p-4 w-[50px] text-center">
                       <Checkbox 
                         checked={selectedIds.length === paginatedItems.length && paginatedItems.length > 0}
                         onCheckedChange={toggleSelectAll}
                       />
                     </th>
-                    <th className="text-left p-4 font-semibold w-1/4 min-w-[200px]">Product</th>
-                    <th className="text-left p-4 font-semibold">Category</th>
-                    <th className="text-right p-4 font-semibold whitespace-nowrap">Purchase Cost</th>
-                    <th className="text-right p-4 font-semibold whitespace-nowrap">Selling Price</th>
-                    <th className="text-center p-4 font-semibold">Status</th>
-                    <th className="text-center p-4 font-semibold">Stock</th>
-                    <th className="text-left p-4 font-semibold whitespace-nowrap">Added On</th>
-                    <th className="text-left p-4 font-semibold whitespace-nowrap">Updated On</th>
-                    <th className="text-right p-4 font-semibold">Actions</th>
+                    <th className="text-left p-4 font-semibold text-slate-600 w-1/4 min-w-[200px]">Product</th>
+                    <th className="text-left p-4 font-semibold text-slate-600">Category</th>
+                    <th className="text-right p-4 font-semibold text-slate-600 whitespace-nowrap">Purchase Cost</th>
+                    <th className="text-right p-4 font-semibold text-slate-600 whitespace-nowrap">Selling Price</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Status</th>
+                    <th className="text-center p-4 font-semibold text-slate-600">Stock</th>
+                    <th className="text-left p-4 font-semibold text-slate-600 whitespace-nowrap">Added On</th>
+                    <th className="text-left p-4 font-semibold text-slate-600 whitespace-nowrap">Updated On</th>
+                    <th className="text-right p-4 font-semibold text-slate-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
