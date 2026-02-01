@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -13,8 +15,6 @@ import { BatchSummaryCard } from '@/components/dashboard/batch-summary-card';
 import { Plus, Trash2, Package, Layers, Upload, X, Tag, Info, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-export const dynamic = 'force-dynamic';
 
 export default function AddStockPage() {
   const router = useRouter();

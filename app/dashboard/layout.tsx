@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Sidebar } from '@/components/layout/sidebar';
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardLayout({
   children,
 }: {
