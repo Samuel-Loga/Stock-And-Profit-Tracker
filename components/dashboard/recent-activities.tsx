@@ -49,31 +49,34 @@ export function RecentActivities({ activities }: { activities: any[] }) {
   });
 
   return (
-    <Card className="col-span-full lg:col-span-3 shadow-sm border-slate-200">
-      <CardHeader className="space-y-4 p-5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold flex items-center gap-2">
+    <Card className="col-span-full lg:col-span-3 shadow-sm border-slate-200 flex flex-col h-full">
+      <CardHeader className="p-6 pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-h-[110px]">
+        <div className="flex flex-col space-y-1 h-8">
+          <CardTitle className="text-lg font-bold flex gap-2 items-center">
             <History className="h-5 w-5 text-blue-600" />
             Activity Stream
           </CardTitle>
+          <p className="text-xs text-slate-500 uppercase font-bold tracking-tight">
+            Recent inventory and sales actions
+          </p>
         </div>
 
         {/* Filter Controls */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 h-8">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="h-8 text-[11px] font-bold uppercase">
+            <SelectTrigger className="h-full text-[11px] font-bold uppercase">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Activities</SelectItem>
               <SelectItem value="sale">Sales Only</SelectItem>
               <SelectItem value="restock">Restocks</SelectItem>
-              <SelectItem value="new_stock">New Inventory</SelectItem>
+              <SelectItem value="new_stock">New Stocks</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="h-8 text-[11px] font-bold uppercase">
+            <SelectTrigger className="h-full text-[11px] font-bold uppercase">
               <SelectValue placeholder="Date" />
             </SelectTrigger>
             <SelectContent>

@@ -167,13 +167,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 pb-4">
+    <div className="space-y-6 pb-4 md:space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
+        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      {/* Summary Cards: 2 Columns on Mobile, 6 on Desktop */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-6">
          <StatsCard title="Inventory Items" value={stats.totalItems} icon={Package} description="Total products tracked" className="border-slate-200 bg-white font-bold" />
          <StatsCard title="Stock Value" value={`K${stats.totalValue.toLocaleString()}`} icon={DollarSign} description="Capital deployed in stock" className="border-blue-100 bg-blue-50/50 text-blue-900" />
          <StatsCard title="Gross Profit" value={`K${stats.actualProfit.toLocaleString()}`} icon={DollarSign} description="Profit before expenses" className="border-emerald-100 bg-emerald-50/50 text-emerald-900" />
@@ -212,17 +212,38 @@ export default function DashboardPage() {
       )}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-slate-100 p-1">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Category Analytics</TabsTrigger>
+        <TabsList className="bg-slate-200/50 p-1 w-full md:w-auto grid grid-cols-2 md:inline-flex h-10 md:h-9">
+          <TabsTrigger 
+            value="overview" 
+            className="text-xs font-bold uppercase tracking-tight transition-all 
+                       data-[state=active]:bg-blue-600 
+                       data-[state=active]:text-white 
+                       data-[state=active]:shadow-md"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics"
+            className="text-xs font-bold uppercase tracking-tight transition-all 
+                       data-[state=active]:bg-blue-600 
+                       data-[state=active]:text-white 
+                       data-[state=active]:shadow-md"
+          >
+            Category Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
            <div className="grid gap-4 lg:grid-cols-7">
+              {/* Force charts to full width on mobile, specialized span on desktop */}
               {/* Sales Analytics provides the line chart */}
-              <SalesAnalytics sales={sales} expenses={expenses} />
+              <div className="lg:col-span-4">
+                <SalesAnalytics sales={sales} expenses={expenses} />
+              </div>
               {/* Activity Stream provides the live vertical feed */}
-              <RecentActivities activities={combinedActivities} />
+              <div className="lg:col-span-3">
+                <RecentActivities activities={combinedActivities} />
+              </div>
            </div>
         </TabsContent>
 
