@@ -283,8 +283,8 @@ export default function SalesPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center font-bold">{sale.quantity_sold}</TableCell>
-                        <TableCell className="text-right font-medium">K{sale.inventory?.purchase_price.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-medium">K{sale.selling_price.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-medium whitespace-nowrap">K{sale.inventory?.purchase_price.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-medium whitespace-nowrap">K{sale.selling_price.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                           {discount > 0 ? (
                             <span className="text-xs font-bold text-red-500">-K{discount.toLocaleString()}</span>

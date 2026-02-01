@@ -185,11 +185,11 @@ export default function ExpensesPage() {
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="font-bold">Date &amp; Time</TableHead>
-                  <TableHead className="font-bold">Expense On</TableHead>
-                  <TableHead className="font-bold">Description</TableHead>
-                  <TableHead className="text-center font-bold">Category</TableHead>
-                  <TableHead className="text-right px-6 font-bold">Amount Paid</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Date &amp; Time</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Expense On</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Description</TableHead>
+                  <TableHead className="text-center font-bold whitespace-nowrap">Category</TableHead>
+                  <TableHead className="text-right px-6 font-bold whitespace-nowrap">Amount Paid</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -215,13 +215,13 @@ export default function ExpensesPage() {
                           </span>
                         </TableCell>
                         {/* Expense On: Derived from the joined inventory table */}
-                        <TableCell className="font-bold text-slate-700 text-sm">
+                        <TableCell className="whitespace-nowrap font-bold text-slate-700 text-sm">
                           {exp.inventory?.item_name || 'General Overhead'}
                         </TableCell>
                         <TableCell className="font-bold text-slate-500 text-sm">
                           {exp.description}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="whitespace-nowrap text-center">
                           <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-transparent font-bold text-[10px] uppercase">
                             {exp.category || 'General'}
                           </Badge>
