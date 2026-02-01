@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -20,86 +20,118 @@ import {
   TrendingUp, History
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+
+interface StockEvent {
+  id: string;
+  date: Date;
+  item_name: string;
+  batch_name: string;
+  type: 'Initial Stock' | 'Restock';
+  quantity: number;
+  cost: number;
+  badgeStyle: string;
+}
 
 export default function StockLogsPage() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [restocks, setRestocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Search & Filter State
+  // Search & Filter State
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
-  // 2. Pagination State
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Data Fetching Logic
   const fetchData = useCallback(async () => {
     setLoading(true);
-    // Fetch initial inventory entries (Initial Stock)
-    const { data: invData } = await supabase
-      .from('inventory')
-      .select('*, batches(batch_name)')
-      .order('created_at', { ascending: false });
+    try {
+      const { data: invData, error: invError } = await supabase
+        .from('inventory')
+        .select('*, batches(batch_name)')
+        .order('created_at', { ascending: false });
 
-    // Fetch restock entries
-    const { data: restockData } = await supabase
-      .from('restocks')
-      .select('*, inventory(item_name), batches(batch_name)')
-      .order('created_at', { ascending: false });
+      if (invError) throw invError;
 
-    setInventory(invData || []);
-    setRestocks(restockData || []);
-    setLoading(false);
+      const { data: restockData, error: restockError } = await supabase
+        .from('restocks')
+        .select(`
+          *,
+          inventory (item_name),
+          batches (batch_name)
+        `)
+        .order('date_added', { ascending: false });
+
+      if (restockError) throw restockError;
+
+      setInventory(invData || []);
+      setRestocks(restockData || []);
+    } catch (err: any) {
+      console.error("Fetch error:", err);
+      toast.error("Failed to sync stock history");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // 3. Combine and sort events by Date & Time
-  const allStockEvents = [
-    ...inventory.map(item => ({
+  const allStockEvents = useMemo(() => {
+    const initEvents = inventory.map(item => ({
       id: `init-${item.id}`,
-      date: new Date(item.created_at),
+      date: new Date(item.created_at || item.date_added),
       item_name: item.item_name,
-      batch_name: item.batches?.batch_name || 'Individual Entry',
-      type: 'Initial Stock',
+      batch_name: item.batches?.batch_name || 'Initial Setup',
+      type: 'Initial Stock' as const,
       quantity: item.initial_quantity,
       cost: item.purchase_price,
       badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-100'
-    })),
-    ...restocks.map(restock => ({
-      id: `restock-${restock.id}`,
-      date: new Date(restock.date_added || restock.created_at),
-      item_name: restock.inventory?.item_name || 'Unknown Item',
-      batch_name: restock.batches?.batch_name || 'Restock Entry',
-      type: 'Restock',
-      quantity: restock.quantity_added,
-      cost: restock.cost_per_unit,
-      badgeStyle: 'bg-blue-50 text-blue-700 border-blue-100'
-    }))
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+    }));
 
-  // 4. Combined Filter Logic
-  const filteredEvents = allStockEvents.filter(event => {
-    const matchesSearch = 
-      event.item_name.toLowerCase().includes(search.toLowerCase()) ||
-      event.batch_name.toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'all' || event.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
+    const restockEvents = restocks.map(restock => {
+      const inv = Array.isArray(restock.inventory) ? restock.inventory[0] : restock.inventory;
+      const batch = Array.isArray(restock.batches) ? restock.batches[0] : restock.batches;
+      
+      return {
+        id: `restock-${restock.id}`,
+        date: new Date(restock.date_added),
+        item_name: inv?.item_name || 'Unknown Item',
+        batch_name: batch?.batch_name || 'Restock Entry',
+        type: 'Restock' as const,
+        quantity: restock.quantity_added,
+        cost: restock.cost_per_unit,
+        badgeStyle: 'bg-blue-50 text-blue-700 border-blue-100'
+      };
+    });
 
-  // 5. Pagination Logic
+    return [...initEvents, ...restockEvents].sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [inventory, restocks]);
+
+  const filteredEvents = useMemo(() => {
+    return allStockEvents.filter((event) => {
+      const matchesSearch = 
+        event.item_name.toLowerCase().includes(search.toLowerCase()) ||
+        event.batch_name.toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === 'all' || event.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [allStockEvents, search, typeFilter]);
+
   const totalItems = filteredEvents.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedEvents = filteredEvents.slice(startIndex, startIndex + pageSize);
+  
+  const paginatedEvents = useMemo(() => {
+    return filteredEvents.slice(startIndex, startIndex + pageSize);
+  }, [filteredEvents, startIndex, pageSize]);
 
   const resetPagination = () => setCurrentPage(1);
 
-  // 6. Export Feature
   const exportToCSV = () => {
     const headers = ["Date,Time,Batch Name,Item Details,Type,Quantity,Unit Cost,Total Investment\n"];
     const rows = filteredEvents.map(event => {
@@ -135,15 +167,6 @@ export default function StockLogsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header Area 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          {/*<h1 className="text-3xl font-black text-slate-900 tracking-tight">Stock Logs</h1>
-          <p className="text-slate-500 font-medium tracking-tight">Complete audit trail of inventory acquisition.</p>
-        </div>
-      </div>*/}
-
-      {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-slate-200 shadow-sm bg-white">
           <CardContent className="p-6 flex items-center gap-4">
@@ -167,7 +190,6 @@ export default function StockLogsPage() {
         </Card>
       </div>
 
-      {/* Stock Events Table */}
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -191,7 +213,6 @@ export default function StockLogsPage() {
           </Button>
         </CardHeader>
 
-        {/* FILTER TOOLBAR */}
         <div className="px-6 pb-4 flex flex-col md:flex-row gap-3 items-center">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -296,7 +317,6 @@ export default function StockLogsPage() {
             </Table>
           </div>
 
-          {/* PAGINATION CONTROLS */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6">
             <p className="text-xs text-muted-foreground font-medium">
               Showing <span className="text-slate-900">{startIndex + 1}</span> to <span className="text-slate-900">{Math.min(startIndex + pageSize, totalItems)}</span> of {totalItems} entries

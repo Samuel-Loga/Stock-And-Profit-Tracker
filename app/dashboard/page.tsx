@@ -5,9 +5,6 @@ import { supabase } from '@/lib/supabase/client';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { CategoryAnalytics } from '@/components/dashboard/category-analytics';
 import { SalesAnalytics } from '@/components/dashboard/sales-analytics';
-import { SalesHistory } from '@/components/dashboard/sales-history';
-import { StockHistory } from '@/components/dashboard/stock-history';
-import { ExpensesTable } from '@/components/dashboard/expenses-table';
 import { RecentActivities } from '@/components/dashboard/recent-activities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -139,7 +136,7 @@ export default function DashboardPage() {
   };
 
   /**
-   * REFINED: Combined Activity Stream Logic
+   * Activity Stream Logic
    * Merges three distinct events into one chronological timeline for the stream.
    */
   const combinedActivities = [
@@ -218,9 +215,6 @@ export default function DashboardPage() {
         <TabsList className="bg-slate-100 p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Category Analytics</TabsTrigger>
-          <TabsTrigger value="sales-history">Sales History</TabsTrigger>
-          <TabsTrigger value="stock-history">Stock History</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -234,18 +228,6 @@ export default function DashboardPage() {
 
         <TabsContent value="analytics">
            <CategoryAnalytics inventory={inventory} sales={sales} categories={allCategories} />
-        </TabsContent>
-
-        <TabsContent value="sales-history">
-          <SalesHistory sales={sales} onRefresh={loadDashboardData} />
-        </TabsContent>
-
-        <TabsContent value="stock-history">
-          <StockHistory inventory={inventory} restocks={restocks} />
-        </TabsContent>
-
-        <TabsContent value="expenses">
-          <ExpensesTable expenses={expenses} onRefresh={loadDashboardData} />
         </TabsContent>
       </Tabs>
     </div>
