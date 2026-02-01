@@ -112,10 +112,10 @@ export default function ExpensesPage() {
           <div className="space-y-1">
             <CardTitle className="text-2xl font-bold flex items-center gap-2">
               <CreditCard className="h-6 w-6 text-rose-600" />
-              Expense Log
+              Operating Expenses
             </CardTitle>
             <p className="text-sm font-bold text-slate-500">
-              Tracking <span className="text-slate-950">{totalItems}</span> total entries.
+              Log of overhead costs impacting Net Profit. Found <span className="text-slate-950">{totalItems}</span> total entries.
             </p>
           </div>
           <Button 
@@ -195,7 +195,7 @@ export default function ExpensesPage() {
               <TableBody>
                 {paginatedExpenses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-40 text-center italic text-slate-400 font-medium">
+                    <TableCell colSpan={5} className="h-40 text-center italic text-slate-400 font-medium">
                       <div className="flex flex-col items-center text-muted-foreground italic gap-2">
                         <CreditCard className="h-8 w-8 text-slate-200" />
                         No expenses found matching your criteria.
