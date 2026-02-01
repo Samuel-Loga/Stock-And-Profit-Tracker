@@ -14,6 +14,7 @@ import {
   Legend 
 } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Filter } from 'lucide-react';
 
 interface SalesAnalyticsProps {
   sales: any[];
@@ -79,8 +80,8 @@ export function SalesAnalytics({ sales, expenses }: SalesAnalyticsProps) {
   if (!isMounted) return <div className="col-span-4 h-[450px] bg-slate-50 animate-pulse rounded-xl" />;
 
   return (
-    <Card className="col-span-4 shadow-sm border-slate-200">
-      <CardHeader className="p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4"> 
+    <Card className="col-span-4 shadow-sm border-slate-200 flex flex-col h-full">
+      <CardHeader className="p-6 pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-h-[110px]"> 
         <div className="space-y-1">
           <CardTitle className="text-lg font-bold text-slate-900">Financial Performance</CardTitle>
           <p className="text-xs text-slate-500 uppercase font-bold tracking-tight">
@@ -89,9 +90,24 @@ export function SalesAnalytics({ sales, expenses }: SalesAnalyticsProps) {
         </div>
 
         <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-auto">
-          <TabsList className="grid w-[200px] grid-cols-2 h-8">
-            <TabsTrigger value="daily" className="text-[10px] uppercase font-bold">Daily</TabsTrigger>
-            <TabsTrigger value="cumulative" className="text-[10px] uppercase font-bold">Growth</TabsTrigger>
+          <TabsList className="bg-slate-200/50 grid w-[200px] grid-cols-2 h-8">
+            <TabsTrigger 
+              value="daily"
+              className="text-[10px] font-bold uppercase tracking-tight transition-all 
+                       data-[state=active]:bg-blue-600 
+                       data-[state=active]:text-white 
+                       data-[state=active]:shadow-md"
+            >
+              Daily
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cumulative"  className="text-[10px] font-bold uppercase tracking-tight transition-all 
+                       data-[state=active]:bg-blue-600 
+                       data-[state=active]:text-white 
+                       data-[state=active]:shadow-md"
+            >
+              Cumulative
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -188,8 +204,9 @@ export function SalesAnalytics({ sales, expenses }: SalesAnalyticsProps) {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-slate-400 italic text-sm">
-              Process transactions to generate financial trends.
+            <div className="text-center py-20">
+              <Filter className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground italic">Process transactions to generate financial trends.</p>
             </div>
           )}
         </div>
