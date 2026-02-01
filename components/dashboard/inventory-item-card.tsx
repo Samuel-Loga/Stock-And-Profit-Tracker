@@ -1,4 +1,3 @@
-// components/dashboard/inventory-item-card.tsx
 'use client';
 
 import { useState } from 'react';
@@ -21,14 +20,36 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [showRestockDialog, setShowRestockDialog] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available': return 'bg-green-100 text-green-800 hover:bg-green-100/80';
-      case 'low_stock': return 'bg-orange-100 text-orange-800 hover:bg-orange-100/80';
-      case 'completed': return 'bg-slate-100 text-slate-800 hover:bg-slate-100/80';
-      default: return 'bg-slate-100 text-slate-800 hover:bg-slate-100/80';
+  const stockPercentage = (item.quantity_remaining / item.initial_quantity) * 100;
+  const margin = ((item.selling_price - item.purchase_price) / item.selling_price) * 100;
+
+  // Unified Theme Logic: Strictly percentage-based (threshold < 25%)
+  const getInventoryTheme = (qty: number, percent: number) => {
+    if (qty <= 0) {
+      return {
+        label: "OUT OF STOCK",
+        badge: "bg-slate-100 text-slate-800 border-slate-200",
+        bar: "bg-red-500"
+      };
     }
+    
+    // ONLY check if percentage is less than 25%
+    if (percent < 25) {
+      return {
+        label: "LOW STOCK",
+        badge: "bg-orange-100 text-orange-800 border-orange-200",
+        bar: "bg-orange-500"
+      };
+    }
+    
+    return {
+      label: "AVAILABLE",
+      badge: "bg-green-100 text-green-800 border-green-200",
+      bar: "bg-green-500"
+    };
   };
+
+  const theme = getInventoryTheme(item.quantity_remaining, stockPercentage);
 
   const isPriceRecentlyUpdated = (dateString: string | null) => {
     if (!dateString) return false;
@@ -38,12 +59,6 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
     return diffInHours < 24;
   };
 
-  const stockPercentage = (item.quantity_remaining / item.initial_quantity) * 100;
-
-  // Operational Intelligence: Profit Margin Calculation
-  const margin = ((item.selling_price - item.purchase_price) / item.selling_price) * 100;
-
-  // Turnover Intelligence
   const daysSinceAdded = Math.max((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24), 1);
   const unitsSold = item.initial_quantity - item.quantity_remaining;
   const velocity = unitsSold / daysSinceAdded;
@@ -54,7 +69,6 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
       <Card className="overflow-hidden border-slate-200">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Top Image Section with Floating Badges */}
             <div className="relative h-28 w-28 flex-shrink-0 mx-auto md:mx-0">
               {item.image_url ? (
                 <img src={item.image_url} alt={item.item_name} className="h-full w-full rounded-xl object-cover border shadow-sm" />
@@ -63,8 +77,6 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                   <Package className="h-10 w-10 text-slate-300" />
                 </div>
               )}
-              
-              {/* MARGIN BADGE - Styled to be more visible */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap uppercase pointer-events-none">
                 {margin.toFixed(0)}% Margin
               </div>
@@ -75,14 +87,12 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <h3 className="font-bold text-xl truncate tracking-tight">{item.item_name}</h3>
-                    {/* CATEGORY TAG */}
                     <Badge variant="outline" className="h-5 text-[10px] gap-1 px-2 text-slate-500 border-slate-200 pointer-events-none">
                       <Tag className="h-2.5 w-2.5" />
                       {(item as any).categories?.name || 'Uncategorized'}
                     </Badge>
                   </div>
                   
-                  {/* BATCH NAME & TURNOVER SUMMARY */}
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                     <span className="flex items-center gap-1">
                       <Layers className="h-3 w-3" />
@@ -100,13 +110,12 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                     {item.description || "No description provided."}
                   </p>
                 </div>
-                {/* STATUS IN CAPS */}
-                <Badge className={`${getStatusColor(item.status)} h-6 uppercase font-bold text-[10px] tracking-wider pointer-events-none`}>
-                  {item.status.replace('_', ' ')}
+
+                <Badge className={`${theme.badge} h-6 uppercase font-bold text-[10px] tracking-wider border shadow-none pointer-events-none`}>
+                  {theme.label}
                 </Badge>
               </div>
 
-              {/* STATS GRID - Expanded to 4 columns to include Turnover Avg */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 border-t pt-4">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Stock</p>
@@ -115,12 +124,9 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                       {item.quantity_remaining} <span className="text-slate-400 font-normal">/ {item.initial_quantity}</span>
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 border">
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 border overflow-hidden">
                     <div
-                      className={`h-1.5 rounded-full transition-all ${
-                        stockPercentage > 50 ? 'bg-green-500' : 
-                        stockPercentage > 20 ? 'bg-orange-500' : 'bg-red-500'
-                      }`}
+                      className={`h-full transition-all duration-500 ${theme.bar}`}
                       style={{ width: `${Math.min(stockPercentage, 100)}%` }}
                     />
                   </div>
@@ -145,7 +151,6 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
                   </p>
                 </div>
 
-                {/* TURNOVER AVG STAT */}
                 <div>
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Turnover Avg</p>
                   <p className="font-bold text-sm text-blue-600">

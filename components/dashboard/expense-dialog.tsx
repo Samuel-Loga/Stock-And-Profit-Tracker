@@ -1,7 +1,6 @@
-// components/dashboard/expense-dialog.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,16 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { 
+  ReceiptText, 
+  Wallet, 
+  Info, 
+  Tag, 
+  Calendar, 
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ExpenseDialogProps {
   open: boolean;
@@ -41,8 +50,8 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
+  const isEditing = !!initialData;
 
-  // Reset form when modal closes or opens for a new entry
   useEffect(() => {
     if (!open) {
       setFormData(DEFAULT_FORM_STATE);
@@ -57,7 +66,6 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
     }
   }, [open, initialData]);
 
-  // Fetch items for the dropdown
   useEffect(() => {
     if (open) {
       const fetchItems = async () => {
@@ -74,44 +82,37 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    const amountNum = parseFloat(formData.amount);
     
+    if (isNaN(amountNum) || amountNum <= 0) return toast.error("Please enter a valid amount");
+    
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const payload = {
+      // FIXED: Payload only includes columns existing in your SQL definition
+      const payload: any = {
         user_id: user.id,
         category: formData.category,
-        amount: parseFloat(formData.amount),
+        amount: amountNum,
         description: formData.description,
         expense_date: formData.date,
         inventory_id: formData.inventory_id === 'general' ? null : formData.inventory_id
       };
 
-      let error;
-      if (initialData?.id) {
-        // UPDATE MODE
-        const { error: updateError } = await supabase
-          .from('expenses')
-          .update(payload)
-          .eq('id', initialData.id);
-        error = updateError;
-      } else {
-        // INSERT MODE
-        const { error: insertError } = await supabase
-          .from('expenses')
-          .insert([payload]);
-        error = insertError;
-      }
+      const { error } = isEditing 
+        ? await supabase.from('expenses').update(payload).eq('id', initialData.id)
+        : await supabase.from('expenses').insert([payload]);
 
       if (error) throw error;
 
+      toast.success(isEditing ? "Expense updated" : "Expense recorded");
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
       console.error('Expense Save Error:', err);
-      alert(err.message || 'An error occurred while saving.');
+      toast.error(err.message || 'An error occurred while saving.');
     } finally {
       setLoading(false);
     }
@@ -119,19 +120,35 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Update Expense' : 'Record Operating Expense'}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <ReceiptText className="h-5 w-5 text-rose-600" />
+            {isEditing ? 'Update Expense' : 'Record Operating Expense'}
+          </DialogTitle>
           <DialogDescription>
-            {initialData 
+            {isEditing 
               ? 'Modify the details of this recorded expense.' 
               : 'Link this cost to a specific item or record it as general overhead.'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Target Info Box */}
+          <div className="p-3 rounded-lg flex items-center justify-between bg-slate-50 border border-slate-100">
+            <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              Applied To
+            </span>
+            <span className="text-sm font-bold text-slate-900 truncate max-w-[200px]">
+              {formData.inventory_id === 'general' 
+                ? 'Business Wide' 
+                : inventoryItems.find(i => i.id === formData.inventory_id)?.item_name || 'Select Item'}
+            </span>
+          </div>
           
           <div className="space-y-2">
-            <Label>Apply Expense To</Label>
+            <Label className="flex items-center h-5">Expense Target</Label>
             <Select 
               value={formData.inventory_id} 
               onValueChange={(v) => setFormData(prev => ({ ...prev, inventory_id: v }))}
@@ -152,7 +169,9 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label className="flex items-center h-5 gap-2">
+                <Tag className="h-3 w-3 text-emerald-500" /> Category
+              </Label>
               <Select 
                 value={formData.category} 
                 onValueChange={(v) => setFormData(prev => ({ ...prev, category: v }))}
@@ -169,7 +188,9 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Amount (K)</Label>
+              <Label className="flex items-center h-5 gap-2">
+                <Wallet className="h-3 w-3 text-rose-500" /> Amount (K)
+              </Label>
               <Input 
                 type="number" 
                 step="0.01" 
@@ -182,16 +203,16 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
           </div>
 
           <div className="space-y-2">
-            <Label>Description</Label>
+            <Label className="flex items-center h-5 gap-2"> Description </Label>
             <Input 
               value={formData.description} 
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} 
-              placeholder="e.g. Courier fee for Lilongwe delivery" 
+              placeholder="e.g. Courier fee for delivery" 
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Date</Label>
+            <Label className="flex items-center h-5 gap-2"> Date </Label>
             <Input 
               type="date" 
               value={formData.date} 
@@ -200,9 +221,34 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess, initialData }: Ex
             />
           </div>
 
-          <DialogFooter className="pt-4">
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Processing...' : initialData ? 'Update Entry' : 'Record Expense'}
+          <div className="bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center shadow-lg border border-slate-800">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest text-left">Cash Outflow</span>
+              <span className="text-[10px] text-slate-500 italic text-left">
+                {formData.category} Expense
+              </span>
+            </div>
+            <span className="text-2xl font-black text-rose-400">
+              K{parseFloat(formData.amount || '0').toLocaleString()}
+            </span>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className={`w-full h-12 text-lg font-bold shadow-md ${
+                isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-rose-700 hover:bg-rose-800'
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {isEditing ? "Updating..." : "Processing..."}
+                </div>
+              ) : (
+                isEditing ? "Update Expense" : "Record Expense"
+              )}
             </Button>
           </DialogFooter>
         </form>
