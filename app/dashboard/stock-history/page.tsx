@@ -266,12 +266,12 @@ export default function StockLogsPage() {
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="font-bold">Date &amp; Time</TableHead>
-                  <TableHead className="font-bold">Batch Name</TableHead>
-                  <TableHead className="font-bold">Item Details</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Date &amp; Time</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Batch Name</TableHead>
+                  <TableHead className="font-bold whitespace-nowrap">Item Details</TableHead>
                   <TableHead className="text-center font-bold">Type</TableHead>
-                  <TableHead className="text-center font-bold">Qty Added</TableHead>
-                  <TableHead className="text-right font-bold">Total Investment</TableHead>
+                  <TableHead className="text-center font-bold whitespace-nowrap">Qty Added</TableHead>
+                  <TableHead className="text-right font-bold whitespace-nowrap">Total Investment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,7 +299,7 @@ export default function StockLogsPage() {
                       <TableCell className="font-semibold text-sm">
                         {event.item_name}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <Badge variant="outline" className={`${event.badgeStyle} border text-[10px] uppercase font-bold px-2 py-0.5`}>
                           {event.type}
                         </Badge>
