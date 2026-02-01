@@ -50,7 +50,7 @@ export function RecentActivities({ activities }: { activities: any[] }) {
 
   return (
     <Card className="col-span-full lg:col-span-3 shadow-sm border-slate-200">
-      <CardHeader className="space-y-4 pb-4">
+      <CardHeader className="space-y-4 p-5">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <History className="h-5 w-5 text-blue-600" />

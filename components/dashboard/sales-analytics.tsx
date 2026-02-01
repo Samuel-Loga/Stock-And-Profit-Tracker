@@ -80,7 +80,7 @@ export function SalesAnalytics({ sales, expenses }: SalesAnalyticsProps) {
 
   return (
     <Card className="col-span-4 shadow-sm border-slate-200">
-      <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4"> 
+      <CardHeader className="p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4"> 
         <div className="space-y-1">
           <CardTitle className="text-lg font-bold text-slate-900">Financial Performance</CardTitle>
           <p className="text-xs text-slate-500 uppercase font-bold tracking-tight">
