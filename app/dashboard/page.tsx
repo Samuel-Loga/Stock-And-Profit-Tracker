@@ -11,7 +11,7 @@ import { ExpensesTable } from '@/components/dashboard/expenses-table';
 import { RecentActivities } from '@/components/dashboard/recent-activities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, DollarSign, Receipt, TrendingUp, AlertCircle, Tag } from 'lucide-react';
+import { Package, DollarSign, Receipt, TrendingUp, AlertCircle, Tag, Loader2 } from 'lucide-react';
 
 // Helper to calculate top performing category based on profit
 const getCategoryPerformance = (inventory: any[], sales: any[]) => {
@@ -163,16 +163,16 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mr-2" /> Loading dashboard data...
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 mt-16">
+    <div className="space-y-8 pb-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Overview</h2>
       </div>
 
       {/* Summary Cards */}

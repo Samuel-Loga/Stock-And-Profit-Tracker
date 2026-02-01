@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BatchSummaryCard } from '@/components/dashboard/batch-summary-card';
-import { Plus, Trash2, Package, Layers, Upload, X, Tag, Info, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Package, Layers, Upload, X, Tag, Info, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -144,8 +144,16 @@ const handleProcessStock = async (e: React.FormEvent) => {
   const labelStyle = "text-xs font-medium uppercase tracking-wider text-slate-800";
   const inputStyle = "h-11 font-medium text-slate-900 border-slate-300 focus-visible:ring-slate-950 transition-all";
 
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mr-2" /> Loading stock setup...
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 mt-8 py-10 px-4">
+    <div className="space-y-6 pb-4">
       {/* 1. Refined Header */}
       <div className="space-y-2 border-b border-slate-200 pb-8">
         <h1 className="text-2xl font-bold tracking-tight text-slate-950">Add Stock</h1>

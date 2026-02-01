@@ -15,7 +15,8 @@ import {
   SearchX, 
   PackageX, 
   RotateCcw,
-  Tag 
+  Tag, 
+  Loader2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,8 +24,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { InventoryItemCard } from '@/components/dashboard/inventory-item-card';
 import { InventoryItemRow } from '@/components/dashboard/inventory-item-row';
 import { BulkCategoryModal } from '@/components/dashboard/bulk-category-modal';
-import { BulkDeleteModal } from '@/components/dashboard/bulk-delete-modal'; // NEW
-import { CategoryManagerDialog } from '@/components/dashboard/category-manager-dialog';
+import { BulkDeleteModal } from '@/components/dashboard/bulk-delete-modal';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 
@@ -167,16 +167,15 @@ export default function InventoryPage() {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6 pt-6 mt-10 pb-4">
+    <div className="space-y-6 pb-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Inventory</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Inventory Management</h1>
           <p className="text-muted-foreground text-sm">
             Manage <b>{totalItems}</b> items. Tracking stock levels and operational velocity.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <CategoryManagerDialog />
           <Link href="/dashboard/add-stock">
             <Button className="gap-2 shadow-md bg-slate-900">
               <Plus className="h-4 w-4" /> Add New Stock
@@ -335,7 +334,7 @@ export default function InventoryPage() {
       {/* Main Content Area */}
       {loading ? (
         <div className="h-64 flex items-center justify-center text-muted-foreground font-medium italic">
-          Syncing with warehouse...
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mr-2" /> Syncing with warehouse...
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border-2 border-dashed border-slate-200">
