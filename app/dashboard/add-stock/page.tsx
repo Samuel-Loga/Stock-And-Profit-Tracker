@@ -14,6 +14,8 @@ import { Plus, Trash2, Package, Layers, Upload, X, Tag, Info, CheckCircle2, Chev
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export default function AddStockPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
