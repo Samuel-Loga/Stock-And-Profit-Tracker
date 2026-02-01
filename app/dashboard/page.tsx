@@ -136,7 +136,7 @@ export default function DashboardPage() {
   };
 
   /**
-   * REFINED: Combined Activity Stream Logic
+   * Activity Stream Logic
    * Merges three distinct events into one chronological timeline for the stream.
    */
   const combinedActivities = [
