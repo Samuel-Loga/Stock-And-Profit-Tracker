@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, ShoppingCart, Info, Tag } from 'lucide-react';
+import { AlertCircle, ShoppingCart, Info, Tag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RecordSaleProps {
@@ -156,7 +156,7 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Quantity to Sell</Label>
+              <Label className="flex items-center h-5">Quantity to Sell</Label>
               <Input 
                 type="number" 
                 value={quantity} 
@@ -167,7 +167,7 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
               />
             </div>
             <div className="space-y-2">
-              <Label>Sales Channel</Label>
+              <Label className="flex items-center h-5">Sales Channel</Label>
               <Select value={channel} onValueChange={setChannel}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -183,7 +183,7 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Unit Price (K)</Label>
+              <Label className="flex items-center h-5">Unit Price (K)</Label>
               <Input 
                 type="number" 
                 step="0.01"
@@ -193,7 +193,7 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
+              <Label className="flex items-center gap-2 h-5">
                 <Tag className="h-3 w-3 text-red-500" /> Discount (K)
               </Label>
               <Input 
@@ -207,7 +207,7 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label className="flex items-center gap-2 h-5">
               <Info className="h-3 w-3 text-slate-400" /> Sale Notes (Optional)
             </Label>
             <Textarea 
@@ -234,9 +234,18 @@ export function RecordSaleDialog({ item, open, onOpenChange, onSuccess, initialD
             <Button 
               type="submit" 
               disabled={loading || availableStock === 0} 
-              className={`w-full h-12 text-lg font-bold shadow-md ${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+              className={`w-full h-12 text-lg font-bold shadow-md ${
+                isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
             >
-              {loading ? "Processing..." : isEditing ? "Update Sale Record" : "Confirm Sale"}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {isEditing ? "Updating..." : "Processing..."}
+                </div>
+              ) : (
+                isEditing ? "Update Sale Record" : "Confirm Sale"
+              )}
             </Button>
           </DialogFooter>
         </form>

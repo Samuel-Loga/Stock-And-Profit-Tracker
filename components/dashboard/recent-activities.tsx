@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   MessageSquare, Facebook, Video, UserCheck, Store, 
-  RefreshCcw, PackagePlus, ShoppingBag, History, Filter
+  RefreshCcw, PackagePlus, History, Filter,
+  ShoppingCart
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -106,7 +107,7 @@ export function RecentActivities({ activities }: { activities: any[] }) {
                       {isSale ? (
                          act.inventory?.image_url ? (
                             <img src={act.inventory.image_url} alt="" className="h-full w-full rounded-full object-cover" />
-                         ) : <ShoppingBag className="h-4 w-4 text-slate-400" />
+                         ) : <ShoppingCart className="h-4 w-4 text-slate-400" />
                       ) : isRestock ? (
                         <RefreshCcw className="h-5 w-5 text-blue-600" />
                       ) : (
