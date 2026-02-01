@@ -269,7 +269,7 @@ export default function StockLogsPage() {
                   <TableHead className="font-bold whitespace-nowrap">Date &amp; Time</TableHead>
                   <TableHead className="font-bold whitespace-nowrap">Batch Name</TableHead>
                   <TableHead className="font-bold whitespace-nowrap">Item Details</TableHead>
-                  <TableHead className="text-center font-bold">Type</TableHead>
+                  <TableHead className="text-center font-bold whitespace-nowrap">Type</TableHead>
                   <TableHead className="text-center font-bold whitespace-nowrap">Qty Added</TableHead>
                   <TableHead className="text-right font-bold whitespace-nowrap">Total Investment</TableHead>
                 </TableRow>
@@ -293,10 +293,10 @@ export default function StockLogsPage() {
                           {event.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-900 text-sm">
+                      <TableCell className="font-medium text-slate-900 text-sm whitespace-nowrap">
                         {event.batch_name}
                       </TableCell>
-                      <TableCell className="font-semibold text-sm">
+                      <TableCell className="font-semibold text-sm whitespace-nowrap">
                         {event.item_name}
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
