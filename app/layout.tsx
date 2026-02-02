@@ -7,11 +7,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Stock and Profit Tracker',
   description: 'Inventory and profit tracking app for resellers.',
-  metadataBase: new URL('https://bolt.new'),
+  metadataBase: new URL('https://stock-and-profit-tracker.vercel.app/'),
   openGraph: {
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: 'https://yhqxhbbwbcaounwmzuqa.supabase.co/storage/v1/object/public/Images/stock%20track.png',
       },
     ],
   },
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: 'https://yhqxhbbwbcaounwmzuqa.supabase.co/storage/v1/object/public/Images/stock%20track.png',
       },
     ],
   },
