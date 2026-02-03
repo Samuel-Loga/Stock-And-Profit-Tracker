@@ -113,9 +113,9 @@ export function CategoryAnalytics({ inventory, sales, categories }: any) {
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm animate-in fade-in slide-in-from-right-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <h4 className="text-emerald-900 font-bold text-sm">Top Performer</h4>
+                <h4 className="text-emerald-900 font-bold text-[14px]">Top Performer</h4>
               </div>
-              <p className="text-emerald-700 text-[11px] leading-relaxed">
+              <p className="text-emerald-700 text-[13px] leading-relaxed">
                 <strong className="text-emerald-900">{topCategory.name}</strong> is your most profitable category. 
                 Focus on keeping stock levels high here to maximize your current momentum.
               </p>
@@ -129,9 +129,9 @@ export function CategoryAnalytics({ inventory, sales, categories }: any) {
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Target className="h-4 w-4 text-blue-600" />
-              <h4 className="text-blue-900 font-bold text-sm">Inventory Mix</h4>
+              <h4 className="text-blue-900 font-bold text-[14px]">Inventory Mix</h4>
             </div>
-            <p className="text-blue-700 text-[11px] leading-relaxed">
+            <p className="text-blue-700 text-[13px] leading-relaxed">
               You are managing <strong className="text-blue-900">{categories.length} categories</strong>. 
               Review categories with high stock value but low units sold to identify "dead weight" capital.
             </p>
@@ -140,9 +140,9 @@ export function CategoryAnalytics({ inventory, sales, categories }: any) {
           <div className="p-4 bg-slate-100/50 rounded-xl border border-slate-200">
              <div className="flex items-center gap-2 mb-1">
                 <Info className="h-3 w-3 text-slate-400" />
-                <span className="text-[10px] font-bold uppercase text-slate-500">Quick Tip</span>
+                <span className="text-[12px] font-bold uppercase text-slate-500">Quick Tip</span>
              </div>
-             <p className="text-[10px] text-slate-500 italic">
+             <p className="text-[12px] text-slate-500 italic">
                Check the Capital Distribution chart to see which categories hold the most investment value.
              </p>
           </div>
